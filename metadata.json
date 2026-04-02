@@ -1,0 +1,5 @@
+{
+  "name": "CCM Template Sensitive Data Analyst",
+  "description": "Analyze Quadient Inspire templates for PII, financial, and security data usage with risk scoring and visualization.",
+  "requestFramePermissions": []
+}
