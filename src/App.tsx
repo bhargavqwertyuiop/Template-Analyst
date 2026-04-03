@@ -3,14 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { 
   ShieldCheck, Search, Filter, RefreshCcw, 
   Download, AlertCircle, LayoutDashboard, 
   Database, FileText, Settings, HelpCircle,
-  ChevronRight, X
+  ChevronRight, X, FileDown, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import { 
   processRawData, RawTemplateData, TemplateVariable, 
   TemplateSummary, DashboardStats, Category, RiskLevel 
@@ -18,6 +20,7 @@ import {
 import { FileUpload } from './components/FileUpload';
 import { SummaryCards, Charts } from './components/Dashboard';
 import { TemplateList, VariableTable } from './components/TemplateAnalysis';
+import { ReportTemplate } from './components/ReportTemplate';
 
 export default function App() {
   const [rawData, setRawData] = useState<RawTemplateData[] | null>(null);
@@ -32,6 +35,8 @@ export default function App() {
   const [selectedRisk, setSelectedRisk] = useState<RiskLevel | 'ALL'>('ALL');
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateSummary | null>(null);
   const [showSensitiveOnly, setShowSensitiveOnly] = useState(true);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
 
   const handleDataLoaded = (data: RawTemplateData[]) => {
     setRawData(data);
@@ -67,6 +72,34 @@ export default function App() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const exportToPDF = async () => {
+    if (!processedData || !reportRef.current) return;
+    
+    setIsExportingPDF(true);
+    try {
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'px',
+        format: [canvas.width, canvas.height]
+      });
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+      pdf.save(`CCM_Security_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error('PDF Generation Error:', error);
+    } finally {
+      setIsExportingPDF(false);
+    }
   };
 
   const resetData = () => {
@@ -179,10 +212,22 @@ export default function App() {
           </button>
           <button 
             onClick={exportToCSV}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-all rounded-xl shadow-lg shadow-indigo-200"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-600 hover:text-indigo-600 transition-colors bg-white border border-gray-200 rounded-xl hover:border-indigo-200"
           >
             <Download className="w-4 h-4" />
             Export CSV
+          </button>
+          <button 
+            onClick={exportToPDF}
+            disabled={isExportingPDF}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-all rounded-xl shadow-lg shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isExportingPDF ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <FileDown className="w-4 h-4" />
+            )}
+            {isExportingPDF ? 'Generating...' : 'Export PDF'}
           </button>
         </div>
       </header>
@@ -306,6 +351,19 @@ export default function App() {
           <p className="text-xs text-gray-400">© 2026 Quadient Inspire CCM Security. All rights reserved.</p>
         </div>
       </footer>
+
+      {/* Hidden Report Template for PDF Export */}
+      <div className="absolute left-[-9999px] top-0">
+        {processedData && (
+          <ReportTemplate 
+            ref={reportRef}
+            stats={processedData.stats}
+            templateSummaries={processedData.templateSummaries}
+            allVariables={processedData.allVariables}
+            date={new Date().toLocaleDateString()}
+          />
+        )}
+      </div>
     </div>
   );
 }
