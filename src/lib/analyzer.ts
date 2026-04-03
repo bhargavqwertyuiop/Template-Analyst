@@ -88,9 +88,9 @@ export function classifyVariableType(objectPath: string, categories: Category[])
 
 export function calculateRiskLevel(categories: Set<Category>): RiskLevel {
   // HIGH -> contains SECURITY + FINANCIAL
-  if (categories.has('SECURITY') && categories.has('FINANCIAL')) return 'HIGH';
+  if (categories.has('SECURITY') || categories.has('FINANCIAL')) return 'HIGH';
   // MEDIUM -> contains PII
-  if (categories.has('PII') || categories.has('FINANCIAL') || categories.has('SECURITY')) return 'MEDIUM';
+  if (categories.has('PII')) return 'MEDIUM';
   // LOW -> only EMAIL / CONTACT
   if (categories.has('EMAIL') || categories.has('CONTACT')) return 'LOW';
   return 'SAFE';
