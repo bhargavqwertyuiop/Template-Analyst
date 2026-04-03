@@ -6,13 +6,9 @@ on:
     branches: [ "main" ]
 
 jobs:
-  validate:
+  build:
     name: Build & Quality Checks
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [18.x]
 
     steps:
       - name: Checkout Code
@@ -21,20 +17,15 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 20
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm ci
+        run: npm install
 
       # Code Quality
       - name: Lint Check
         run: npm run lint
-
-      # Security Scan
-      - name: npm Audit (High Severity)
-        run: npm audit --audit-level=high
-        continue-on-error: true
 
       # Final Gate 
       - name: Build Application
