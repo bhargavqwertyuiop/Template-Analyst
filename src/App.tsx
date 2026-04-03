@@ -3,34 +3,40 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { 
   ShieldCheck, Search, Filter, RefreshCcw, 
   Download, AlertCircle, LayoutDashboard, 
   Database, FileText, Settings, HelpCircle,
-  ChevronRight, X
+  ChevronRight, X, FileDown, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import { 
-  processRawData, RawTemplateData, SensitiveVariable, 
-  TemplateRisk, DashboardStats, Category, RiskLevel 
+  processRawData, RawTemplateData, TemplateVariable, 
+  TemplateSummary, DashboardStats, Category, RiskLevel 
 } from './lib/analyzer';
 import { FileUpload } from './components/FileUpload';
 import { SummaryCards, Charts } from './components/Dashboard';
 import { TemplateList, VariableTable } from './components/TemplateAnalysis';
+import { ReportTemplate } from './components/ReportTemplate';
 
 export default function App() {
   const [rawData, setRawData] = useState<RawTemplateData[] | null>(null);
   const [processedData, setProcessedData] = useState<{
-    sensitiveVariables: SensitiveVariable[];
-    templateRisks: TemplateRisk[];
+    allVariables: TemplateVariable[];
+    templateSummaries: TemplateSummary[];
     stats: DashboardStats;
   } | null>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<Category | 'ALL'>('ALL');
   const [selectedRisk, setSelectedRisk] = useState<RiskLevel | 'ALL'>('ALL');
-  const [selectedTemplate, setSelectedTemplate] = useState<TemplateRisk | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateSummary | null>(null);
+  const [showSensitiveOnly, setShowSensitiveOnly] = useState(true);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
 
   const handleDataLoaded = (data: RawTemplateData[]) => {
     setRawData(data);
@@ -38,16 +44,63 @@ export default function App() {
     setProcessedData(processed);
   };
 
-  const filteredRisks = useMemo(() => {
+  const filteredSummaries = useMemo(() => {
     if (!processedData) return [];
-    return processedData.templateRisks.filter(risk => {
-      const matchesSearch = risk.templateName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        risk.variables.some(v => v.variable.toLowerCase().includes(searchQuery.toLowerCase()));
-      const matchesCategory = selectedCategory === 'ALL' || risk.categories.has(selectedCategory as Category);
-      const matchesRisk = selectedRisk === 'ALL' || risk.riskLevel === selectedRisk;
-      return matchesSearch && matchesCategory && matchesRisk;
+    return processedData.templateSummaries.filter(summary => {
+      const matchesSearch = summary.templateName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        summary.variables.some(v => v.variableName.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchesCategory = selectedCategory === 'ALL' || summary.categories.has(selectedCategory as Category);
+      const matchesRisk = selectedRisk === 'ALL' || summary.riskLevel === selectedRisk;
+      const matchesSensitive = !showSensitiveOnly || summary.sensitiveCount > 0;
+      return matchesSearch && matchesCategory && matchesRisk && matchesSensitive;
     });
-  }, [processedData, searchQuery, selectedCategory, selectedRisk]);
+  }, [processedData, searchQuery, selectedCategory, selectedRisk, showSensitiveOnly]);
+
+  const exportToCSV = () => {
+    if (!processedData) return;
+    const headers = ['Template', 'Module', 'Object Path', 'Variable', 'Type', 'Categories', 'Flow', 'Count'];
+    const rows = processedData.allVariables.map(v => [
+      v.template, v.module, v.objectPath, v.variableName, v.type, v.categories.join('|'), v.flow, v.count
+    ]);
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "ccm_template_analysis.csv");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportToPDF = async () => {
+    if (!processedData || !reportRef.current) return;
+    
+    setIsExportingPDF(true);
+    try {
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'px',
+        format: [canvas.width, canvas.height]
+      });
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+      pdf.save(`CCM_Security_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error('PDF Generation Error:', error);
+    } finally {
+      setIsExportingPDF(false);
+    }
+  };
 
   const resetData = () => {
     setRawData(null);
@@ -151,15 +204,30 @@ export default function App() {
             />
           </div>
           <button 
-            onClick={resetData}
+            onClick={() => { resetData(); setSelectedTemplate(null); }}
             className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-600 hover:text-indigo-600 transition-colors bg-white border border-gray-200 rounded-xl hover:border-indigo-200"
           >
             <RefreshCcw className="w-4 h-4" />
             Reset
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-all rounded-xl shadow-lg shadow-indigo-200">
+          <button 
+            onClick={exportToCSV}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-600 hover:text-indigo-600 transition-colors bg-white border border-gray-200 rounded-xl hover:border-indigo-200"
+          >
             <Download className="w-4 h-4" />
-            Export Report
+            Export CSV
+          </button>
+          <button 
+            onClick={exportToPDF}
+            disabled={isExportingPDF}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-all rounded-xl shadow-lg shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isExportingPDF ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <FileDown className="w-4 h-4" />
+            )}
+            {isExportingPDF ? 'Generating...' : 'Export PDF'}
           </button>
         </div>
       </header>
@@ -172,7 +240,16 @@ export default function App() {
             <Filter className="w-4 h-4 text-gray-400" />
             <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Filters</span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2">
+              <span className="text-sm font-medium text-gray-600">Sensitive Only</span>
+              <button 
+                onClick={() => setShowSensitiveOnly(!showSensitiveOnly)}
+                className={`w-10 h-5 rounded-full transition-colors relative ${showSensitiveOnly ? 'bg-indigo-600' : 'bg-gray-200'}`}
+              >
+                <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-transform ${showSensitiveOnly ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
             <select 
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value as Category | 'ALL')}
@@ -199,12 +276,12 @@ export default function App() {
           </div>
         </div>
 
-        <Charts stats={processedData.stats} templateRisks={processedData.templateRisks} />
+        <Charts stats={processedData.stats} templateSummaries={processedData.templateSummaries} />
 
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
           <div className="xl:col-span-5">
             <TemplateList 
-              risks={filteredRisks} 
+              risks={filteredSummaries} 
               onSelectTemplate={setSelectedTemplate}
               selectedTemplate={selectedTemplate}
             />
@@ -222,7 +299,9 @@ export default function App() {
                   <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
                     <div>
                       <h3 className="text-xl font-bold text-gray-900 mb-1">{selectedTemplate.templateName}</h3>
-                      <p className="text-sm text-gray-500">Detailed variable analysis for this template</p>
+                      <p className="text-sm text-gray-500">
+                        Analyzing {showSensitiveOnly ? selectedTemplate.sensitiveCount : selectedTemplate.totalCount} variables
+                      </p>
                     </div>
                     <button 
                       onClick={() => setSelectedTemplate(null)}
@@ -231,7 +310,12 @@ export default function App() {
                       <X className="w-5 h-5 text-gray-400" />
                     </button>
                   </div>
-                  <VariableTable variables={selectedTemplate.variables} />
+                  <VariableTable 
+                    variables={showSensitiveOnly 
+                      ? selectedTemplate.variables.filter(v => v.categories.length > 0) 
+                      : selectedTemplate.variables
+                    } 
+                  />
                 </motion.div>
               ) : (
                 <motion.div
@@ -267,6 +351,19 @@ export default function App() {
           <p className="text-xs text-gray-400">© 2026 Quadient Inspire CCM Security. All rights reserved.</p>
         </div>
       </footer>
+
+      {/* Hidden Report Template for PDF Export */}
+      <div className="absolute left-[-9999px] top-0">
+        {processedData && (
+          <ReportTemplate 
+            ref={reportRef}
+            stats={processedData.stats}
+            templateSummaries={processedData.templateSummaries}
+            allVariables={processedData.allVariables}
+            date={new Date().toLocaleDateString()}
+          />
+        )}
+      </div>
     </div>
   );
 }
