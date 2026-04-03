@@ -1,0 +1,41 @@
+name: Frontend Build & Validate
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  validate:
+    name: Build & Quality Checks
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      # Code Quality
+      - name: Lint Check
+        run: npm run lint
+
+      # Security Scan
+      - name: npm Audit (High Severity)
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+      # Final Gate 
+      - name: Build Application
+        run: npm run build
