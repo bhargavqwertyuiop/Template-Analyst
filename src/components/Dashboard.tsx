@@ -6,13 +6,13 @@
 import React from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  PieChart, Pie, Cell, Legend, CellProps
+  PieChart, Pie, Cell, Legend
 } from 'recharts';
 import { 
   Layout, ShieldAlert, Database, AlertTriangle, 
   Mail, User, CreditCard, Lock, Phone 
 } from 'lucide-react';
-import { DashboardStats, Category, TemplateRisk } from '../lib/analyzer';
+import { DashboardStats, Category, TemplateSummary, VariableType } from '../lib/analyzer';
 
 const CATEGORY_COLORS: Record<Category, string> = {
   EMAIL: '#3b82f6', // blue-500
@@ -21,6 +21,13 @@ const CATEGORY_COLORS: Record<Category, string> = {
   SECURITY: '#ef4444', // red-500
   CONTACT: '#10b981', // emerald-500
   NONE: '#94a3b8' // slate-400
+};
+
+const TYPE_COLORS: Record<VariableType, string> = {
+  System: '#64748b', // slate-500
+  Global: '#0ea5e9', // sky-500
+  Sensitive: '#ef4444', // red-500
+  Other: '#94a3b8' // slate-400
 };
 
 const CATEGORY_ICONS: Record<Category, React.ReactNode> = {
@@ -46,15 +53,15 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
       border: 'border-blue-100'
     },
     {
-      label: 'Sensitive Templates',
-      value: stats.sensitiveTemplates,
+      label: 'Total Variables',
+      value: stats.totalVariables,
       icon: <Database className="w-6 h-6 text-indigo-600" />,
       bg: 'bg-indigo-50',
       border: 'border-indigo-100'
     },
     {
-      label: 'Sensitive Variables',
-      value: stats.totalSensitiveVariables,
+      label: 'Sensitive Variables Count',
+      value: stats.sensitiveVariablesCount,
       icon: <ShieldAlert className="w-6 h-6 text-amber-600" />,
       bg: 'bg-amber-50',
       border: 'border-amber-100'
@@ -87,37 +94,45 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
 
 interface ChartsProps {
   stats: DashboardStats;
-  templateRisks: TemplateRisk[];
+  templateSummaries: TemplateSummary[];
 }
 
-export function Charts({ stats, templateRisks }: ChartsProps) {
-  const pieData = Object.entries(stats.categoryDistribution).map(([name, value]) => ({
+export function Charts({ stats, templateSummaries }: ChartsProps) {
+  const pieData = Object.entries(stats.categoryDistribution)
+    .filter(([name, value]) => name !== 'NONE' && value > 0)
+    .map(([name, value]) => ({
+      name,
+      value
+    }));
+
+  const typeData = Object.entries(stats.typeDistribution).map(([name, value]) => ({
     name,
     value
   }));
 
-  const barData = templateRisks
-    .sort((a, b) => b.totalCount - a.totalCount)
+  const barData = templateSummaries
+    .sort((a, b) => b.sensitiveCount - a.sensitiveCount)
     .slice(0, 10)
     .map(t => ({
       name: t.templateName.length > 20 ? t.templateName.substring(0, 17) + '...' : t.templateName,
       fullName: t.templateName,
-      count: t.totalCount
+      sensitive: t.sensitiveCount,
+      total: t.totalCount
     }));
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-      <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 mb-6">Category Distribution</h3>
-        <div className="h-[300px]">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Category Distribution</h3>
+        <div className="h-[250px]">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={pieData}
                 cx="50%"
                 cy="50%"
-                innerRadius={60}
-                outerRadius={100}
+                innerRadius={50}
+                outerRadius={80}
                 paddingAngle={5}
                 dataKey="value"
               >
@@ -134,11 +149,38 @@ export function Charts({ stats, templateRisks }: ChartsProps) {
         </div>
       </div>
 
-      <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 mb-6">Top Sensitive Templates</h3>
-        <div className="h-[300px]">
+      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Variable Types</h3>
+        <div className="h-[250px]">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={barData} layout="vertical" margin={{ left: 40, right: 40 }}>
+            <PieChart>
+              <Pie
+                data={typeData}
+                cx="50%"
+                cy="50%"
+                innerRadius={50}
+                outerRadius={80}
+                paddingAngle={5}
+                dataKey="value"
+              >
+                {typeData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={TYPE_COLORS[entry.name as VariableType]} />
+                ))}
+              </Pie>
+              <Tooltip 
+                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+              />
+              <Legend verticalAlign="bottom" height={36}/>
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Risky Templates</h3>
+        <div className="h-[250px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={barData} layout="vertical" margin={{ left: 20, right: 20 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
               <XAxis type="number" hide />
               <YAxis 
@@ -146,16 +188,16 @@ export function Charts({ stats, templateRisks }: ChartsProps) {
                 type="category" 
                 axisLine={false} 
                 tickLine={false} 
-                tick={{ fontSize: 12, fill: '#64748b' }}
-                width={120}
+                tick={{ fontSize: 11, fill: '#64748b' }}
+                width={100}
               />
               <Tooltip 
                 cursor={{ fill: '#f8fafc' }}
                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                formatter={(value: number) => [value, 'Variables']}
+                formatter={(value: number) => [value, 'Sensitive Variables']}
                 labelFormatter={(label, payload) => payload[0]?.payload?.fullName || label}
               />
-              <Bar dataKey="count" fill="#6366f1" radius={[0, 4, 4, 0]} barSize={20} />
+              <Bar dataKey="sensitive" fill="#ef4444" radius={[0, 4, 4, 0]} barSize={15} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -164,4 +206,4 @@ export function Charts({ stats, templateRisks }: ChartsProps) {
   );
 }
 
-export { CATEGORY_COLORS, CATEGORY_ICONS };
+export { CATEGORY_COLORS, CATEGORY_ICONS, TYPE_COLORS };

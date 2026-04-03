@@ -6,12 +6,12 @@
 import React from 'react';
 import { 
   AlertCircle, AlertTriangle, CheckCircle, 
-  Search, Filter, ChevronRight, MoreVertical 
+  ChevronRight
 } from 'lucide-react';
 import { 
-  TemplateRisk, SensitiveVariable, RiskLevel, Category 
+  TemplateSummary, TemplateVariable, VariableType, RiskLevel
 } from '../lib/analyzer';
-import { CATEGORY_COLORS, CATEGORY_ICONS } from './Dashboard';
+import { CATEGORY_COLORS, CATEGORY_ICONS, TYPE_COLORS } from './Dashboard';
 
 const RISK_CONFIG: Record<RiskLevel, { icon: React.ReactNode; color: string; bg: string; border: string; label: string }> = {
   HIGH: {
@@ -45,9 +45,9 @@ const RISK_CONFIG: Record<RiskLevel, { icon: React.ReactNode; color: string; bg:
 };
 
 interface TemplateListProps {
-  risks: TemplateRisk[];
-  onSelectTemplate: (template: TemplateRisk | null) => void;
-  selectedTemplate: TemplateRisk | null;
+  risks: TemplateSummary[];
+  onSelectTemplate: (template: TemplateSummary | null) => void;
+  selectedTemplate: TemplateSummary | null;
 }
 
 export function TemplateList({ risks, onSelectTemplate, selectedTemplate }: TemplateListProps) {
@@ -92,14 +92,14 @@ export function TemplateList({ risks, onSelectTemplate, selectedTemplate }: Temp
                       {config.label}
                     </span>
                     <span className="text-xs text-gray-400">
-                      {risk.variables.length} sensitive variables
+                      {risk.sensitiveCount} / {risk.totalCount} sensitive
                     </span>
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-4">
                 <div className="flex -space-x-2">
-                  {Array.from(risk.categories).map((cat, i) => (
+                  {Array.from(risk.categories).slice(0, 3).map((cat, i) => (
                     <div 
                       key={i} 
                       className="w-8 h-8 rounded-full bg-white border-2 border-white shadow-sm flex items-center justify-center"
@@ -109,6 +109,11 @@ export function TemplateList({ risks, onSelectTemplate, selectedTemplate }: Temp
                       {CATEGORY_ICONS[cat]}
                     </div>
                   ))}
+                  {risk.categories.size > 3 && (
+                    <div className="w-8 h-8 rounded-full bg-gray-100 border-2 border-white shadow-sm flex items-center justify-center text-[10px] font-bold text-gray-500">
+                      +{risk.categories.size - 3}
+                    </div>
+                  )}
                 </div>
                 <ChevronRight className={`w-5 h-5 text-gray-300 transition-transform ${isSelected ? 'rotate-90' : ''}`} />
               </div>
@@ -121,7 +126,7 @@ export function TemplateList({ risks, onSelectTemplate, selectedTemplate }: Temp
 }
 
 interface VariableTableProps {
-  variables: SensitiveVariable[];
+  variables: TemplateVariable[];
 }
 
 export function VariableTable({ variables }: VariableTableProps) {
@@ -132,42 +137,46 @@ export function VariableTable({ variables }: VariableTableProps) {
           <thead className="bg-gray-50 text-gray-500 uppercase text-[10px] tracking-wider font-bold">
             <tr>
               <th className="px-6 py-4">Variable Name</th>
-              <th className="px-6 py-4">Category</th>
+              <th className="px-6 py-4">Type</th>
+              <th className="px-6 py-4">Categories</th>
               <th className="px-6 py-4">Flow / Section</th>
               <th className="px-6 py-4">Count</th>
-              <th className="px-6 py-4">Risk</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {variables.map((v, i) => (
               <tr key={i} className="hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4">
-                  <div className="font-mono text-indigo-600 bg-indigo-50 px-2 py-1 rounded inline-block">
-                    {v.variable}
+                  <div className="font-mono text-indigo-600 bg-indigo-50 px-2 py-1 rounded inline-block" title={v.objectPath}>
+                    {v.variableName}
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="w-6 h-6 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: `${CATEGORY_COLORS[v.category]}20`, color: CATEGORY_COLORS[v.category] }}
-                    >
-                      {CATEGORY_ICONS[v.category]}
-                    </div>
-                    <span className="font-medium text-gray-700">{v.category}</span>
+                  <span 
+                    className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full"
+                    style={{ backgroundColor: `${TYPE_COLORS[v.type]}20`, color: TYPE_COLORS[v.type] }}
+                  >
+                    {v.type}
+                  </span>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-1 flex-wrap">
+                    {v.categories.length > 0 ? v.categories.map((cat, idx) => (
+                      <div 
+                        key={idx}
+                        className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium"
+                        style={{ backgroundColor: `${CATEGORY_COLORS[cat]}15`, color: CATEGORY_COLORS[cat] }}
+                      >
+                        {CATEGORY_ICONS[cat]}
+                        {cat}
+                      </div>
+                    )) : (
+                      <span className="text-gray-300">—</span>
+                    )}
                   </div>
                 </td>
                 <td className="px-6 py-4 text-gray-500">{v.flow}</td>
                 <td className="px-6 py-4 font-semibold text-gray-900">{v.count}</td>
-                <td className="px-6 py-4">
-                  {v.category === 'SECURITY' || v.category === 'FINANCIAL' ? (
-                    <span className="flex items-center gap-1 text-red-600 font-bold text-xs uppercase tracking-tighter">
-                      <AlertCircle className="w-3 h-3" /> Critical
-                    </span>
-                  ) : (
-                    <span className="text-gray-400 text-xs">Standard</span>
-                  )}
-                </td>
               </tr>
             ))}
           </tbody>
