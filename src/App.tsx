@@ -15,7 +15,7 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { 
   processRawData, RawTemplateData, TemplateVariable, 
-  TemplateSummary, DashboardStats, Category, RiskLevel 
+  TemplateSummary, DashboardStats, Category, RiskLevel, TemplateType 
 } from './lib/analyzer';
 import { FileUpload } from './components/FileUpload';
 import { SummaryCards, Charts } from './components/Dashboard';
@@ -33,6 +33,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<Category | 'ALL'>('ALL');
   const [selectedRisk, setSelectedRisk] = useState<RiskLevel | 'ALL'>('ALL');
+  const [selectedTemplateType, setSelectedTemplateType] = useState<TemplateType | 'ALL'>('ALL');
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateSummary | null>(null);
   const [showSensitiveOnly, setShowSensitiveOnly] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
@@ -52,9 +53,10 @@ export default function App() {
       const matchesCategory = selectedCategory === 'ALL' || summary.categories.has(selectedCategory as Category);
       const matchesRisk = selectedRisk === 'ALL' || summary.riskLevel === selectedRisk;
       const matchesSensitive = !showSensitiveOnly || summary.sensitiveCount > 0;
-      return matchesSearch && matchesCategory && matchesRisk && matchesSensitive;
+      const matchesTemplateType = selectedTemplateType === 'ALL' || summary.templateType === selectedTemplateType;
+      return matchesSearch && matchesCategory && matchesRisk && matchesSensitive && matchesTemplateType;
     });
-  }, [processedData, searchQuery, selectedCategory, selectedRisk, showSensitiveOnly]);
+  }, [processedData, searchQuery, selectedCategory, selectedRisk, showSensitiveOnly, selectedTemplateType]);
 
   const toggleSensitiveOnly = () => {
     const nextShowSensitiveOnly = !showSensitiveOnly;
@@ -286,6 +288,17 @@ export default function App() {
               {riskOptions.map(option => (
                 <option key={option.value} value={option.value}>{option.label}</option>
               ))}
+            </select>
+            <select 
+              value={selectedTemplateType}
+              onChange={(e) => setSelectedTemplateType(e.target.value as TemplateType | 'ALL')}
+              className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+            >
+              <option value="ALL">All Template Types</option>
+              <option value="BASE_TEMPLATE">Base Template (Master)</option>
+              <option value="BLOCK">Block</option>
+              <option value="SNIPPET">Snippet</option>
+              <option value="TEMPLATE">Template</option>
             </select>
           </div>
         </div>
