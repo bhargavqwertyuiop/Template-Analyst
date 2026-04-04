@@ -245,8 +245,8 @@ export function Charts({ stats, templateSummaries }: ChartsProps) {
               <Tooltip 
                 cursor={{ fill: '#f8fafc' }}
                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                formatter={(value: number) => [value, 'Sensitive Variables']}
-                labelFormatter={(label, payload) => payload[0]?.payload?.fullName || label}
+                formatter={(value) => [value, 'Sensitive Variables']}
+                labelFormatter={(label) => (Array.isArray(label) ? label[0] : label)}
               />
               <Bar dataKey="sensitive" fill="#ef4444" radius={[0, 4, 4, 0]} barSize={15} />
             </BarChart>

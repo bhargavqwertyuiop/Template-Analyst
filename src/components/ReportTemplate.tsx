@@ -9,7 +9,7 @@ import { DashboardStats, TemplateSummary, TemplateVariable, Category, RiskLevel,
 import { CATEGORY_COLORS } from './Dashboard';
 
 interface ReportTemplateProps {
-  stats: DashboardStats;
+  stats: DashboardStats | null;
   templateSummaries: TemplateSummary[];
   allVariables: TemplateVariable[];
   date: string;
@@ -17,13 +17,6 @@ interface ReportTemplateProps {
 
 const A4_WIDTH = 595;
 const A4_HEIGHT = 842;
-
-interface ReportTemplateProps {
-  stats: DashboardStats | null;
-  templateSummaries: TemplateSummary[];
-  allVariables: TemplateVariable[];
-  date: string;
-}
 
 export const ReportTemplate = React.forwardRef<HTMLDivElement, ReportTemplateProps>(
   ({ stats, templateSummaries, allVariables, date }, ref) => {
