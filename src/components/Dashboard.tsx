@@ -136,7 +136,7 @@ export function Charts({ stats, templateSummaries }: ChartsProps) {
 
   const barData = templateSummaries
     .sort((a, b) => b.sensitiveCount - a.sensitiveCount)
-    .slice(0, 10)
+    .slice(0, 50)
     .map(t => ({
       name: t.templateName.length > 20 ? t.templateName.substring(0, 17) + '...' : t.templateName,
       fullName: t.templateName,

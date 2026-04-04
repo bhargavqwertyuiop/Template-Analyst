@@ -206,7 +206,7 @@ export const ReportTemplate = React.forwardRef<HTMLDivElement, ReportTemplatePro
                 return riskOrder[a.riskLevel as RiskLevel] - riskOrder[b.riskLevel as RiskLevel];
               }
               return b.sensitiveCount - a.sensitiveCount;
-            }).slice(0, 20).map((summary, i) => {
+            }).slice(0, 100).map((summary, i) => {
               const config = RISK_CONFIG[summary.riskLevel];
               return (
                 <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-pdf-gray-50'}>
@@ -242,7 +242,7 @@ export const ReportTemplate = React.forwardRef<HTMLDivElement, ReportTemplatePro
             </tr>
           </thead>
           <tbody className="divide-y divide-pdf-gray-200">
-            {sensitiveVariables.slice(0, 25).map((v, i) => (
+            {sensitiveVariables.slice(0, 162).map((v, i) => (
               <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-pdf-gray-50'}>
                 <td className="px-3 py-2 font-mono text-pdf-indigo-600 font-bold text-xs">{v.variableName}</td>
                 <td className="px-3 py-2 text-xs">{v.template}</td>
@@ -258,9 +258,9 @@ export const ReportTemplate = React.forwardRef<HTMLDivElement, ReportTemplatePro
             ))}
           </tbody>
         </table>
-        {sensitiveVariables.length > 25 && (
+        {sensitiveVariables.length > 162 && (
           <p className="text-xs text-pdf-gray-500 mt-4 italic">
-            + {sensitiveVariables.length - 25} more sensitive findings (see detailed appendix)
+            + {sensitiveVariables.length - 162} additional sensitive findings (see detailed appendix)
           </p>
         )}
       </div>

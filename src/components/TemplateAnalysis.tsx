@@ -104,7 +104,7 @@ export function TemplateList({ risks, onSelectTemplate, selectedTemplate }: Temp
               </div>
               <div className="flex items-center gap-4">
                 <div className="flex -space-x-2">
-                  {Array.from(risk.categories).slice(0, 3).map((cat, i) => (
+                  {Array.from(risk.categories).map((cat, i) => (
                     <div 
                       key={i} 
                       className="w-8 h-8 rounded-full bg-white border-2 border-white shadow-sm flex items-center justify-center"
