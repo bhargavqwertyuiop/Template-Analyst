@@ -20,6 +20,29 @@ import { FileUpload } from './components/FileUpload';
 import { SummaryCards, Charts } from './components/Dashboard';
 import { TemplateList, VariableTable } from './components/TemplateAnalysis';
 
+const RISK_STYLES: Record<RiskLevel, { label: string; bg: string; text: string; border: string }> = {
+  HIGH: { label: 'High Risk', bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
+  MEDIUM: { label: 'Medium Risk', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
+  LOW: { label: 'Low Risk', bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+  SAFE: { label: 'Safe', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' }
+};
+
+const TEMPLATE_TYPE_LABELS: Record<TemplateType, string> = {
+  BASE_TEMPLATE: 'Base Template (Master)',
+  BLOCK: 'Block',
+  SNIPPET: 'Snippet',
+  TEMPLATE: 'Template'
+};
+
+const CATEGORY_LABELS: Record<Category, string> = {
+  EMAIL: 'Email',
+  PII: 'PII',
+  FINANCIAL: 'Financial',
+  SECURITY: 'Security',
+  CONTACT: 'Contact',
+  NONE: 'None'
+};
+
 export default function App() {
   const [rawData, setRawData] = useState<RawTemplateData[] | null>(null);
   const [processedData, setProcessedData] = useState<{
@@ -70,6 +93,24 @@ export default function App() {
     { value: 'LOW', label: 'Low Risk' },
     ...(showSensitiveOnly ? [] : [{ value: 'SAFE' as RiskLevel, label: 'Safe' }])
   ];
+
+  const selectedTemplateCategoryBreakdown = useMemo(() => {
+    if (!selectedTemplate) return new Map<Category, number>();
+    const breakdown = new Map<Category, number>();
+    selectedTemplate.variables.forEach(v => {
+      v.categories.forEach(cat => {
+        breakdown.set(cat, (breakdown.get(cat) || 0) + 1);
+      });
+    });
+    return breakdown;
+  }, [selectedTemplate]);
+
+  const selectedTemplateRiskNote = useMemo(() => {
+    if (!selectedTemplate) return '';
+    const { sensitiveCount, totalCount } = selectedTemplate;
+    const percentage = totalCount > 0 ? ((sensitiveCount / totalCount) * 100).toFixed(1) : '0.0';
+    return `${percentage}% of variables are sensitive.`;
+  }, [selectedTemplate]);
 
   const exportToCSV = () => {
     if (!processedData) {
@@ -148,6 +189,7 @@ export default function App() {
 
       addSectionTitle('Template Variable Analysis Report');
       addLine(`Generated: ${new Date().toLocaleDateString()}`);
+      addLine('Prepared by Template Analyst');
       cursorY += 2;
       addKeyValue('Total Templates', processedData.stats.totalTemplates);
       addKeyValue('Total Variables', processedData.stats.totalVariables);
@@ -155,9 +197,13 @@ export default function App() {
       addKeyValue('High Risk Templates', processedData.stats.highRiskCount);
       addLine('');
 
+      addSectionTitle('Report Summary');
+      addLine('This report provides an executive overview of template risk exposure and sensitive variable findings for the uploaded CCM dataset.');
+      addLine('');
+
       addSectionTitle('Risk Distribution');
       Object.entries(processedData.stats.riskDistribution).forEach(([name, value]) => {
-        addLine(`- ${name}: ${value}`);
+        addLine(`• ${name}: ${value}`);
       });
       addLine('');
 
@@ -166,31 +212,44 @@ export default function App() {
         const label = name === 'BASE_TEMPLATE' ? 'Base Template (Master)' :
           name === 'BLOCK' ? 'Block' :
           name === 'SNIPPET' ? 'Snippet' : 'Template';
-        addLine(`- ${label}: ${value}`);
+        addLine(`• ${label}: ${value}`);
       });
       addLine('');
 
-      addSectionTitle('Top Risky Templates');
-      const sortedTemplates = [...processedData.templateSummaries].sort((a, b) => {
-        const order = { HIGH: 0, MEDIUM: 1, LOW: 2, SAFE: 3 };
-        if (a.riskLevel !== b.riskLevel) return order[a.riskLevel] - order[b.riskLevel];
-        return b.sensitiveCount - a.sensitiveCount;
-      });
-      sortedTemplates.slice(0, 50).forEach((template, index) => {
-        addLine(`${index + 1}. ${template.templateName} — ${template.riskLevel} — ${template.sensitiveCount} sensitive`);
-      });
-      addLine('');
-
-      addSectionTitle('Sensitive Variable Summary');
-      const sensitiveVariables = processedData.allVariables.filter(v => v.categories.length > 0);
-      addKeyValue('Total Sensitive Variables', sensitiveVariables.length);
-      sensitiveVariables.slice(0, 80).forEach((variable, index) => {
-        addLine(`${index + 1}. ${variable.variableName} (${variable.template}) — ${variable.categories.join(', ')} — ${variable.count}`);
+      addSectionTitle('Templates by Type');
+      
+      const templatesByType: Record<string, TemplateSummary[]> = {};
+      processedData.templateSummaries.forEach(template => {
+        if (!templatesByType[template.templateType]) {
+          templatesByType[template.templateType] = [];
+        }
+        templatesByType[template.templateType].push(template);
       });
 
-      if (sensitiveVariables.length > 80) {
-        addLine(`...and ${sensitiveVariables.length - 80} more sensitive variable entries`);
-      }
+      const typeOrder = ['BASE_TEMPLATE', 'BLOCK', 'SNIPPET', 'TEMPLATE'];
+      
+      typeOrder.forEach(type => {
+        const templates = templatesByType[type] || [];
+        if (templates.length === 0) return;
+        
+        const typeLabel = type === 'BASE_TEMPLATE' ? 'Base Template (Master)' :
+          type === 'BLOCK' ? 'Block' :
+          type === 'SNIPPET' ? 'Snippet' : 'Template';
+        
+        addLine(`${typeLabel} (${templates.length} templates)`);
+        
+        templates.forEach((template) => {
+          addLine(`  • ${template.templateName}`);
+          
+          template.variables.forEach((variable, varIndex) => {
+            const flowInfo = variable.flow ? ` [Flow: ${variable.flow}]` : '';
+            const categoryInfo = variable.categories.length > 0 ? ` [${variable.categories.join(', ')}]` : '';
+            addLine(`    ${varIndex + 1}. ${variable.variableName}${flowInfo}${categoryInfo}`);
+          });
+          
+          addLine('');
+        });
+      });
 
       pdf.save(`CCM_Security_Report_${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (error) {
@@ -413,26 +472,85 @@ export default function App() {
                   exit={{ opacity: 0, x: -20 }}
                   className="space-y-6"
                 >
-                  <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-1">{selectedTemplate.templateName}</h3>
-                      <p className="text-sm text-gray-500">
-                        Analyzing {showSensitiveOnly ? selectedTemplate.sensitiveCount : selectedTemplate.totalCount} variables
+                  <div className="bg-gradient-to-br from-white to-slate-50 p-8 rounded-2xl border border-slate-200 shadow-sm">
+                    <div className="flex flex-col gap-6">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 pb-6 border-b border-slate-200">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.32em] text-indigo-600 font-semibold mb-2">Template Report</p>
+                          <h3 className="text-2xl font-bold text-gray-900 mb-2">{selectedTemplate.templateName}</h3>
+                          <p className="text-sm text-gray-600">{selectedTemplateRiskNote}</p>
+                        </div>
+                        <button 
+                          onClick={() => setSelectedTemplate(null)}
+                          className="p-2 hover:bg-white rounded-lg transition-colors"
+                        >
+                          <X className="w-5 h-5 text-gray-400" />
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                        <div className="rounded-3xl border border-gray-100 bg-white p-4 shadow-sm">
+                          <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Risk level</p>
+                          <span className={`inline-flex items-center rounded-full px-3 py-2 text-xs font-semibold ${RISK_STYLES[selectedTemplate.riskLevel].bg} ${RISK_STYLES[selectedTemplate.riskLevel].text}`}>
+                            {RISK_STYLES[selectedTemplate.riskLevel].label}
+                          </span>
+                        </div>
+                        <div className="rounded-3xl border border-gray-100 bg-white p-4 shadow-sm">
+                          <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Template type</p>
+                          <span className="inline-flex items-center rounded-full bg-blue-50 text-blue-700 px-3 py-2 text-xs font-semibold">
+                            {TEMPLATE_TYPE_LABELS[selectedTemplate.templateType]}
+                          </span>
+                        </div>
+                        <div className="rounded-3xl border border-gray-100 bg-white p-4 shadow-sm">
+                          <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Total variables</p>
+                          <p className="text-3xl font-bold text-gray-900">{selectedTemplate.totalCount}</p>
+                        </div>
+                        <div className="rounded-3xl border border-gray-100 bg-white p-4 shadow-sm">
+                          <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Sensitive</p>
+                          <p className="text-3xl font-bold text-red-600">{selectedTemplate.sensitiveCount}</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        <div className="rounded-3xl border border-gray-100 bg-white p-4 shadow-sm">
+                          <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Detected categories</p>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedTemplate.categories.size > 0 ? Array.from(selectedTemplate.categories).map((category) => (
+                              <span key={category} className="inline-flex items-center rounded-full bg-indigo-100 px-3 py-1 text-xs font-medium text-indigo-700">
+                                {CATEGORY_LABELS[category]} ({selectedTemplateCategoryBreakdown.get(category) ?? 0})
+                              </span>
+                            )) : (
+                              <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">No sensitive categories detected</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="rounded-3xl border border-gray-100 bg-white p-4 shadow-sm">
+                          <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Template path</p>
+                          <p className="text-sm text-gray-700 break-all font-mono bg-slate-50 p-3 rounded-xl border border-slate-100">
+                            {selectedTemplate.templatePath}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="border-b border-gray-100 px-6 py-4 bg-gradient-to-r from-gray-50 to-white">
+                      <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">Variables</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {showSensitiveOnly ? 'Sensitive variables only' : 'All variables'} (
+                        {showSensitiveOnly ? selectedTemplate.variables.filter(v => v.categories.length > 0).length : selectedTemplate.variables.length}
+                        )
                       </p>
                     </div>
-                    <button 
-                      onClick={() => setSelectedTemplate(null)}
-                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                    >
-                      <X className="w-5 h-5 text-gray-400" />
-                    </button>
+                    <VariableTable 
+                      variables={showSensitiveOnly 
+                        ? selectedTemplate.variables.filter(v => v.categories.length > 0) 
+                        : selectedTemplate.variables
+                      } 
+                    />
                   </div>
-                  <VariableTable 
-                    variables={showSensitiveOnly 
-                      ? selectedTemplate.variables.filter(v => v.categories.length > 0) 
-                      : selectedTemplate.variables
-                    } 
-                  />
                 </motion.div>
               ) : (
                 <motion.div
