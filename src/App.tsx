@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   ShieldCheck, Search, Filter, RefreshCcw, 
   Download, AlertCircle, LayoutDashboard, 
@@ -11,7 +11,6 @@ import {
   ChevronRight, X, FileDown, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { 
   processRawData, RawTemplateData, TemplateVariable, 
@@ -20,7 +19,6 @@ import {
 import { FileUpload } from './components/FileUpload';
 import { SummaryCards, Charts } from './components/Dashboard';
 import { TemplateList, VariableTable } from './components/TemplateAnalysis';
-import { ReportTemplate } from './components/ReportTemplate';
 
 export default function App() {
   const [rawData, setRawData] = useState<RawTemplateData[] | null>(null);
@@ -37,7 +35,6 @@ export default function App() {
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateSummary | null>(null);
   const [showSensitiveOnly, setShowSensitiveOnly] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
-  const reportRef = useRef<HTMLDivElement>(null);
 
   const handleDataLoaded = (data: RawTemplateData[]) => {
     setRawData(data);
@@ -104,12 +101,7 @@ export default function App() {
       alert('No data available for export');
       return;
     }
-    if (!reportRef.current) {
-      console.error('Report reference not found');
-      alert('Report template not found');
-      return;
-    }
-    
+
     setIsExportingPDF(true);
     try {
       const pdf = new jsPDF({
@@ -118,36 +110,86 @@ export default function App() {
         format: 'a4'
       });
 
-      // Get all page divs with data-report-page attribute
-      const pages = reportRef.current.querySelectorAll('[data-report-page]');
-      const pageCount = pages.length;
+      const margin = 15;
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const availableWidth = pageWidth - margin * 2;
+      const lineHeight = 6;
+      let cursorY = margin;
 
-      if (pageCount === 0) {
-        console.error('No pages found in report');
-        alert('Error: Could not find report pages');
-        return;
-      }
+      const nextPage = () => {
+        pdf.addPage();
+        cursorY = margin;
+      };
 
-      for (let i = 0; i < pageCount; i++) {
-        const pageElement = pages[i] as HTMLElement;
-        
-        const canvas = await html2canvas(pageElement, {
-          scale: 2,
-          useCORS: true,
-          logging: false,
-          backgroundColor: '#ffffff',
-          allowTaint: true,
-          windowHeight: 842
+      const addLine = (text: string, options: { align?: 'left' | 'center' | 'right' } = {}) => {
+        const lines = pdf.splitTextToSize(text, availableWidth);
+        lines.forEach((line, index) => {
+          if (cursorY + lineHeight > pageHeight - margin) {
+            nextPage();
+          }
+          pdf.text(line, margin, cursorY, { align: options.align || 'left' });
+          cursorY += lineHeight;
         });
+      };
 
-        const imgData = canvas.toDataURL('image/png');
-        
-        if (i > 0) {
-          pdf.addPage();
-        }
+      const addSectionTitle = (title: string) => {
+        pdf.setFontSize(13);
+        pdf.setFont('helvetica', 'bold');
+        addLine(title);
+        cursorY += 2;
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+      };
 
-        // A4 dimensions: 210mm x 297mm
-        pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
+      const addKeyValue = (key: string, value: string | number) => {
+        addLine(`${key}: ${value}`);
+      };
+
+      addSectionTitle('Template Variable Analysis Report');
+      addLine(`Generated: ${new Date().toLocaleDateString()}`);
+      cursorY += 2;
+      addKeyValue('Total Templates', processedData.stats.totalTemplates);
+      addKeyValue('Total Variables', processedData.stats.totalVariables);
+      addKeyValue('Sensitive Variables', processedData.stats.sensitiveVariablesCount);
+      addKeyValue('High Risk Templates', processedData.stats.highRiskCount);
+      addLine('');
+
+      addSectionTitle('Risk Distribution');
+      Object.entries(processedData.stats.riskDistribution).forEach(([name, value]) => {
+        addLine(`- ${name}: ${value}`);
+      });
+      addLine('');
+
+      addSectionTitle('Template Type Distribution');
+      Object.entries(processedData.stats.templateTypeDistribution).forEach(([name, value]) => {
+        const label = name === 'BASE_TEMPLATE' ? 'Base Template (Master)' :
+          name === 'BLOCK' ? 'Block' :
+          name === 'SNIPPET' ? 'Snippet' : 'Template';
+        addLine(`- ${label}: ${value}`);
+      });
+      addLine('');
+
+      addSectionTitle('Top Risky Templates');
+      const sortedTemplates = [...processedData.templateSummaries].sort((a, b) => {
+        const order = { HIGH: 0, MEDIUM: 1, LOW: 2, SAFE: 3 };
+        if (a.riskLevel !== b.riskLevel) return order[a.riskLevel] - order[b.riskLevel];
+        return b.sensitiveCount - a.sensitiveCount;
+      });
+      sortedTemplates.slice(0, 50).forEach((template, index) => {
+        addLine(`${index + 1}. ${template.templateName} — ${template.riskLevel} — ${template.sensitiveCount} sensitive`);
+      });
+      addLine('');
+
+      addSectionTitle('Sensitive Variable Summary');
+      const sensitiveVariables = processedData.allVariables.filter(v => v.categories.length > 0);
+      addKeyValue('Total Sensitive Variables', sensitiveVariables.length);
+      sensitiveVariables.slice(0, 80).forEach((variable, index) => {
+        addLine(`${index + 1}. ${variable.variableName} (${variable.template}) — ${variable.categories.join(', ')} — ${variable.count}`);
+      });
+
+      if (sensitiveVariables.length > 80) {
+        addLine(`...and ${sensitiveVariables.length - 80} more sensitive variable entries`);
       }
 
       pdf.save(`CCM_Security_Report_${new Date().toISOString().split('T')[0]}.pdf`);
@@ -426,19 +468,6 @@ export default function App() {
           <p className="text-xs text-gray-400">© 2026 Quadient Inspire CCM Security. All rights reserved.</p>
         </div>
       </footer>
-
-      {/* Hidden Report Template for PDF Export */}
-      <div className="absolute left-[-9999px] top-0">
-        {processedData && (
-          <ReportTemplate 
-            ref={reportRef}
-            stats={processedData.stats}
-            templateSummaries={processedData.templateSummaries}
-            allVariables={processedData.allVariables}
-            date={new Date().toLocaleDateString()}
-          />
-        )}
-      </div>
     </div>
   );
 }
