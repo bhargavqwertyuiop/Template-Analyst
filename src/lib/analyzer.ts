@@ -60,7 +60,10 @@ export const SENSITIVE_DICTIONARY: Record<Category, string[]> = {
   NONE: []
 };
 
-export function extractVariableName(objectName: string): string {
+export function extractVariableName(objectName: string | null | undefined): string {
+  if (!objectName || typeof objectName !== 'string') {
+    return '';
+  }
   const parts = objectName.split('.');
   return parts[parts.length - 1] || '';
 }

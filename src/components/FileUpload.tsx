@@ -13,6 +13,10 @@ interface FileUploadProps {
 }
 
 export function FileUpload({ onDataLoaded }: FileUploadProps) {
+  if (typeof onDataLoaded !== 'function') {
+    console.error('FileUpload: onDataLoaded callback is not a function');
+    return null;
+  }
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

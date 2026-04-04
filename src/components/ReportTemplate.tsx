@@ -18,8 +18,28 @@ interface ReportTemplateProps {
 const A4_WIDTH = 595;
 const A4_HEIGHT = 842;
 
+interface ReportTemplateProps {
+  stats: DashboardStats | null;
+  templateSummaries: TemplateSummary[];
+  allVariables: TemplateVariable[];
+  date: string;
+}
+
 export const ReportTemplate = React.forwardRef<HTMLDivElement, ReportTemplateProps>(
   ({ stats, templateSummaries, allVariables, date }, ref) => {
+    // Validate inputs
+    if (!stats || typeof stats !== 'object') {
+      console.warn('ReportTemplate: Invalid stats provided');
+      return <div style={{ width: '595px', height: '842px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>No report data available</div>;
+    }
+    if (!Array.isArray(templateSummaries)) {
+      console.warn('ReportTemplate: Invalid templateSummaries');
+      return null;
+    }
+    if (!Array.isArray(allVariables)) {
+      console.warn('ReportTemplate: Invalid allVariables');
+      return null;
+    }
     const sensitiveVariables = allVariables.filter(v => v.categories.length > 0);
 
     const RISK_CONFIG: Record<RiskLevel, { color: string; label: string }> = {
