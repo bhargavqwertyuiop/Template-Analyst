@@ -121,11 +121,35 @@ export function processRawData(data: RawTemplateData[]): {
   templateSummaries: TemplateSummary[];
   stats: DashboardStats;
 } {
+  // Validate input data
+  if (!Array.isArray(data) || data.length === 0) {
+    console.warn('processRawData: No data provided');
+    return {
+      allVariables: [],
+      templateSummaries: [],
+      stats: {
+        totalTemplates: 0,
+        totalVariables: 0,
+        sensitiveVariablesCount: 0,
+        highRiskCount: 0,
+        categoryDistribution: { EMAIL: 0, PII: 0, FINANCIAL: 0, SECURITY: 0, CONTACT: 0, NONE: 0 },
+        typeDistribution: { System: 0, Global: 0, Sensitive: 0, Other: 0 },
+        riskDistribution: { HIGH: 0, MEDIUM: 0, LOW: 0, SAFE: 0 },
+        templateTypeDistribution: { BASE_TEMPLATE: 0, BLOCK: 0, SNIPPET: 0, TEMPLATE: 0 }
+      }
+    };
+  }
+
   const allVariables: TemplateVariable[] = [];
   const templateMap: Record<string, TemplateVariable[]> = {};
   const templatePathMap: Record<string, string> = {};
 
-  data.forEach(row => {
+  data.forEach((row, idx) => {
+    // Safely validate row data
+    if (!row || typeof row !== 'object') {
+      console.warn(`Row ${idx} is invalid:`, row);
+      return;
+    }
     const objectPath = row['Object Name'] || '';
     const varName = extractVariableName(objectPath);
     const categories = detectCategories(varName);

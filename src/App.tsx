@@ -75,7 +75,14 @@ export default function App() {
   ];
 
   const exportToCSV = () => {
-    if (!processedData) return;
+    if (!processedData) {
+      alert('No data available for export');
+      return;
+    }
+    if (!processedData.allVariables || !Array.isArray(processedData.allVariables)) {
+      alert('Invalid data format');
+      return;
+    }
     const headers = ['Template', 'Module', 'Object Path', 'Variable', 'Type', 'Categories', 'Flow', 'Count'];
     const rows = processedData.allVariables.map(v => [
       v.template, v.module, v.objectPath, v.variableName, v.type, v.categories.join('|'), v.flow, v.count
@@ -93,7 +100,15 @@ export default function App() {
   };
 
   const exportToPDF = async () => {
-    if (!processedData || !reportRef.current) return;
+    if (!processedData) {
+      alert('No data available for export');
+      return;
+    }
+    if (!reportRef.current) {
+      console.error('Report reference not found');
+      alert('Report template not found');
+      return;
+    }
     
     setIsExportingPDF(true);
     try {
@@ -145,9 +160,18 @@ export default function App() {
   };
 
   const resetData = () => {
-    setRawData(null);
-    setProcessedData(null);
-    setSelectedTemplate(null);
+    try {
+      setRawData(null);
+      setProcessedData(null);
+      setSelectedTemplate(null);
+      setSearchQuery('');
+      setSelectedCategory('ALL');
+      setSelectedRisk('ALL');
+      setShowSensitiveOnly(false);
+      setSelectedTemplateType('ALL');
+    } catch (error) {
+      console.error('Error resetting data:', error);
+    }
   };
 
   if (!processedData) {
