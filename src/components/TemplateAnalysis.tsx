@@ -87,9 +87,14 @@ export function TemplateList({ risks, onSelectTemplate, selectedTemplate }: Temp
                 </div>
                 <div>
                   <h4 className="font-semibold text-gray-900 mb-1">{risk.templateName}</h4>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full ${config.bg} ${config.color}`}>
                       {config.label}
+                    </span>
+                    <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
+                      {risk.templateType === 'BASE_TEMPLATE' ? 'Base Template (Master)' :
+                       risk.templateType === 'BLOCK' ? 'Block' :
+                       risk.templateType === 'SNIPPET' ? 'Snippet' : 'Template'}
                     </span>
                     <span className="text-xs text-gray-400">
                       {risk.sensitiveCount} / {risk.totalCount} sensitive

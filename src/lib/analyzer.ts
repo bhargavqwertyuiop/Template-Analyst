@@ -6,6 +6,7 @@
 export type Category = 'EMAIL' | 'PII' | 'FINANCIAL' | 'SECURITY' | 'CONTACT' | 'NONE';
 export type VariableType = 'System' | 'Global' | 'Sensitive' | 'Other';
 export type RiskLevel = 'HIGH' | 'MEDIUM' | 'LOW' | 'SAFE';
+export type TemplateType = 'BASE_TEMPLATE' | 'BLOCK' | 'SNIPPET' | 'TEMPLATE';
 
 export interface RawTemplateData {
   WfdName: string;
@@ -35,6 +36,8 @@ export interface TemplateSummary {
   categories: Set<Category>;
   riskLevel: RiskLevel;
   typeDistribution: Record<VariableType, number>;
+  templateType: TemplateType;
+  templatePath: string;
 }
 
 export interface DashboardStats {
@@ -45,6 +48,7 @@ export interface DashboardStats {
   categoryDistribution: Record<Category, number>;
   typeDistribution: Record<VariableType, number>;
   riskDistribution: Record<RiskLevel, number>;
+  templateTypeDistribution: Record<TemplateType, number>;
 }
 
 export const SENSITIVE_DICTIONARY: Record<Category, string[]> = {
@@ -59,6 +63,21 @@ export const SENSITIVE_DICTIONARY: Record<Category, string[]> = {
 export function extractVariableName(objectName: string): string {
   const parts = objectName.split('.');
   return parts[parts.length - 1] || '';
+}
+
+export function detectTemplateType(wfdName: string): TemplateType {
+  const path = wfdName.toLowerCase();
+  
+  if (path.includes('/base') || path.includes('/master') || path.includes('/basetemplate')) {
+    return 'BASE_TEMPLATE';
+  }
+  if (path.includes('/block') || path.includes('/blocks')) {
+    return 'BLOCK';
+  }
+  if (path.includes('/snippet') || path.includes('/snippets')) {
+    return 'SNIPPET';
+  }
+  return 'TEMPLATE';
 }
 
 export function detectCategories(variableName: string): Category[] {
@@ -104,15 +123,17 @@ export function processRawData(data: RawTemplateData[]): {
 } {
   const allVariables: TemplateVariable[] = [];
   const templateMap: Record<string, TemplateVariable[]> = {};
+  const templatePathMap: Record<string, string> = {};
 
   data.forEach(row => {
     const objectPath = row['Object Name'] || '';
     const varName = extractVariableName(objectPath);
     const categories = detectCategories(varName);
     const type = classifyVariableType(objectPath, categories);
+    const templateName = row.WfdName.split('/').pop() || row.WfdName;
 
     const variable: TemplateVariable = {
-      template: row.WfdName.split('/').pop() || row.WfdName,
+      template: templateName,
       module: row['Module Name'],
       objectPath,
       variableName: varName,
@@ -126,6 +147,7 @@ export function processRawData(data: RawTemplateData[]): {
 
     if (!templateMap[variable.template]) {
       templateMap[variable.template] = [];
+      templatePathMap[variable.template] = row.WfdName;
     }
     templateMap[variable.template].push(variable);
   });
@@ -146,7 +168,9 @@ export function processRawData(data: RawTemplateData[]): {
       totalCount: vars.length,
       categories,
       riskLevel: calculateRiskLevel(categories),
-      typeDistribution
+      typeDistribution,
+      templateType: detectTemplateType(templatePathMap[name]),
+      templatePath: templatePathMap[name]
     };
   });
 
@@ -168,7 +192,11 @@ export function processRawData(data: RawTemplateData[]): {
     riskDistribution: templateSummaries.reduce((acc, summary) => {
       acc[summary.riskLevel] = (acc[summary.riskLevel] || 0) + 1;
       return acc;
-    }, { HIGH: 0, MEDIUM: 0, LOW: 0, SAFE: 0 } as Record<RiskLevel, number>)
+    }, { HIGH: 0, MEDIUM: 0, LOW: 0, SAFE: 0 } as Record<RiskLevel, number>),
+    templateTypeDistribution: templateSummaries.reduce((acc, summary) => {
+      acc[summary.templateType] = (acc[summary.templateType] || 0) + 1;
+      return acc;
+    }, { BASE_TEMPLATE: 0, BLOCK: 0, SNIPPET: 0, TEMPLATE: 0 } as Record<TemplateType, number>)
   };
 
   return { allVariables, templateSummaries, stats };
