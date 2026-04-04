@@ -44,6 +44,7 @@ export interface DashboardStats {
   highRiskCount: number;
   categoryDistribution: Record<Category, number>;
   typeDistribution: Record<VariableType, number>;
+  riskDistribution: Record<RiskLevel, number>;
 }
 
 export const SENSITIVE_DICTIONARY: Record<Category, string[]> = {
@@ -163,7 +164,11 @@ export function processRawData(data: RawTemplateData[]): {
     typeDistribution: allVariables.reduce((acc, v) => {
       acc[v.type] = (acc[v.type] || 0) + 1;
       return acc;
-    }, { System: 0, Global: 0, Sensitive: 0, Other: 0 } as Record<VariableType, number>)
+    }, { System: 0, Global: 0, Sensitive: 0, Other: 0 } as Record<VariableType, number>),
+    riskDistribution: templateSummaries.reduce((acc, summary) => {
+      acc[summary.riskLevel] = (acc[summary.riskLevel] || 0) + 1;
+      return acc;
+    }, { HIGH: 0, MEDIUM: 0, LOW: 0, SAFE: 0 } as Record<RiskLevel, number>)
   };
 
   return { allVariables, templateSummaries, stats };

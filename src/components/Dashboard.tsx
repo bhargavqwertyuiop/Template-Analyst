@@ -12,7 +12,7 @@ import {
   Layout, ShieldAlert, Database, AlertTriangle, 
   Mail, User, CreditCard, Lock, Phone 
 } from 'lucide-react';
-import { DashboardStats, Category, TemplateSummary, VariableType } from '../lib/analyzer';
+import { DashboardStats, Category, TemplateSummary, RiskLevel, VariableType } from '../lib/analyzer';
 
 const CATEGORY_COLORS: Record<Category, string> = {
   EMAIL: '#3b82f6', // blue-500
@@ -21,6 +21,13 @@ const CATEGORY_COLORS: Record<Category, string> = {
   SECURITY: '#ef4444', // red-500
   CONTACT: '#10b981', // emerald-500
   NONE: '#94a3b8' // slate-400
+};
+
+const RISK_COLORS: Record<RiskLevel, string> = {
+  HIGH: '#ef4444', // red-500
+  MEDIUM: '#f59e0b', // amber-500
+  LOW: '#3b82f6', // blue-500
+  SAFE: '#10b981' // emerald-500
 };
 
 const TYPE_COLORS: Record<VariableType, string> = {
@@ -105,7 +112,7 @@ export function Charts({ stats, templateSummaries }: ChartsProps) {
       value
     }));
 
-  const typeData = Object.entries(stats.typeDistribution).map(([name, value]) => ({
+  const riskData = Object.entries(stats.riskDistribution).map(([name, value]) => ({
     name,
     value
   }));
@@ -150,12 +157,12 @@ export function Charts({ stats, templateSummaries }: ChartsProps) {
       </div>
 
       <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Variable Types</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Risk Level Distribution</h3>
         <div className="h-[250px]">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
-                data={typeData}
+                data={riskData}
                 cx="50%"
                 cy="50%"
                 innerRadius={50}
@@ -163,8 +170,8 @@ export function Charts({ stats, templateSummaries }: ChartsProps) {
                 paddingAngle={5}
                 dataKey="value"
               >
-                {typeData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={TYPE_COLORS[entry.name as VariableType]} />
+                {riskData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={RISK_COLORS[entry.name as RiskLevel]} />
                 ))}
               </Pie>
               <Tooltip 

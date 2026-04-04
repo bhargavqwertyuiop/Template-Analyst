@@ -34,7 +34,7 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<Category | 'ALL'>('ALL');
   const [selectedRisk, setSelectedRisk] = useState<RiskLevel | 'ALL'>('ALL');
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateSummary | null>(null);
-  const [showSensitiveOnly, setShowSensitiveOnly] = useState(true);
+  const [showSensitiveOnly, setShowSensitiveOnly] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
