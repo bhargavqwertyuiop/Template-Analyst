@@ -97,24 +97,48 @@ export default function App() {
     
     setIsExportingPDF(true);
     try {
-      const canvas = await html2canvas(reportRef.current, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff'
-      });
-      
-      const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
         orientation: 'portrait',
-        unit: 'px',
-        format: [canvas.width, canvas.height]
+        unit: 'mm',
+        format: 'a4'
       });
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+
+      // Get all page divs with data-report-page attribute
+      const pages = reportRef.current.querySelectorAll('[data-report-page]');
+      const pageCount = pages.length;
+
+      if (pageCount === 0) {
+        console.error('No pages found in report');
+        alert('Error: Could not find report pages');
+        return;
+      }
+
+      for (let i = 0; i < pageCount; i++) {
+        const pageElement = pages[i] as HTMLElement;
+        
+        const canvas = await html2canvas(pageElement, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff',
+          allowTaint: true,
+          windowHeight: 842
+        });
+
+        const imgData = canvas.toDataURL('image/png');
+        
+        if (i > 0) {
+          pdf.addPage();
+        }
+
+        // A4 dimensions: 210mm x 297mm
+        pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
+      }
+
       pdf.save(`CCM_Security_Report_${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (error) {
       console.error('PDF Generation Error:', error);
+      alert('Failed to generate PDF. Please try again.');
     } finally {
       setIsExportingPDF(false);
     }

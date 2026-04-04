@@ -15,25 +15,18 @@ interface ReportTemplateProps {
   date: string;
 }
 
-// A4 Page: 595px × 842px (8.27" × 11.69")
-const A4_STYLES = {
-  container: "w-[595px] h-[842px] mx-auto bg-white break-after-page",
-  padding: "p-8",
-  header: "text-lg font-bold text-gray-900 mb-4 pb-2 border-b-2 border-indigo-600",
-  smallText: "text-xs",
-  tableHeader: "text-xs font-bold bg-gray-200 px-2 py-1",
-  tableCell: "text-xs px-2 py-1 border-b border-gray-200"
-};
+const A4_WIDTH = 595;
+const A4_HEIGHT = 842;
 
 export const ReportTemplate = React.forwardRef<HTMLDivElement, ReportTemplateProps>(
   ({ stats, templateSummaries, allVariables, date }, ref) => {
     const sensitiveVariables = allVariables.filter(v => v.categories.length > 0);
 
-    const RISK_CONFIG: Record<RiskLevel, { color: string; bg: string; label: string }> = {
-      HIGH: { color: 'text-red-700', bg: 'bg-red-50', label: 'HIGH' },
-      MEDIUM: { color: 'text-amber-700', bg: 'bg-amber-50', label: 'MEDIUM' },
-      LOW: { color: 'text-blue-700', bg: 'bg-blue-50', label: 'LOW' },
-      SAFE: { color: 'text-emerald-700', bg: 'bg-emerald-50', label: 'SAFE' }
+    const RISK_CONFIG: Record<RiskLevel, { color: string; label: string }> = {
+      HIGH: { color: '#dc2626', label: 'HIGH' },
+      MEDIUM: { color: '#f59e0b', label: 'MEDIUM' },
+      LOW: { color: '#3b82f6', label: 'LOW' },
+      SAFE: { color: '#10b981', label: 'SAFE' }
     };
 
     const TEMPLATE_TYPE_LABELS: Record<TemplateType, string> = {
@@ -43,71 +36,124 @@ export const ReportTemplate = React.forwardRef<HTMLDivElement, ReportTemplatePro
       TEMPLATE: 'Template'
     };
 
+    const pageStyle: React.CSSProperties = {
+      width: `${A4_WIDTH}px`,
+      height: `${A4_HEIGHT}px`,
+      margin: '0 auto',
+      padding: '32px',
+      backgroundColor: '#ffffff',
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '12px',
+      color: '#111827',
+      pageBreakAfter: 'always'
+    };
+
+    const headerStyle: React.CSSProperties = {
+      fontSize: '18px',
+      fontWeight: 'bold',
+      color: '#111827',
+      marginBottom: '16px',
+      paddingBottom: '8px',
+      borderBottom: '2px solid #4f46e5'
+    };
+
+    const tableStyle: React.CSSProperties = {
+      width: '100%',
+      borderCollapse: 'collapse',
+      fontSize: '11px',
+      marginTop: '12px'
+    };
+
+    const headerCellStyle: React.CSSProperties = {
+      backgroundColor: '#d1d5db',
+      padding: '4px 8px',
+      border: '1px solid #d1d5db',
+      fontWeight: 'bold',
+      textAlign: 'left'
+    };
+
+    const cellStyle: React.CSSProperties = {
+      padding: '4px 8px',
+      border: '1px solid #e5e7eb'
+    };
+
     return (
-      <div ref={ref} className="font-sans bg-gray-50">
+      <div ref={ref} style={{ backgroundColor: '#f3f4f6' }}>
         {/* PAGE 1: Title Page */}
-        <div className={`${A4_STYLES.container} flex flex-col justify-center items-center bg-indigo-600 text-white`}>
-          <ShieldCheck className="w-16 h-16 mb-6" />
-          <h1 className="text-3xl font-bold text-center mb-4">Template Variable Analysis Report</h1>
-          <p className="text-center mb-2 text-sm">Security & Compliance Assessment</p>
-          <p className="text-center text-xs opacity-75 flex items-center gap-2">
-            <Calendar className="w-3 h-3" /> {date}
-          </p>
-          <div className="mt-12 pt-12 border-t border-white border-opacity-20 text-center">
-            <p className="text-xs opacity-75">Total Templates: {stats.totalTemplates}</p>
-            <p className="text-xs opacity-75">Sensitive Variables: {stats.sensitiveVariablesCount}</p>
+        <div data-report-page style={{
+            ...pageStyle,
+            backgroundColor: '#4f46e5',
+            color: '#ffffff',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            textAlign: 'center'
+          }}
+        >
+          <div style={{ marginBottom: '24px' }}>
+            <ShieldCheck size={64} color="#ffffff" />
+          </div>
+          <h1 style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '12px' }}>
+            Template Variable Analysis Report
+          </h1>
+          <p style={{ fontSize: '14px', marginBottom: '8px' }}>Security & Compliance Assessment</p>
+          <p style={{ fontSize: '12px', opacity: 0.8 }}>Generated on {date}</p>
+          <div style={{ marginTop: '48px', paddingTop: '48px', borderTop: '1px solid rgba(255,255,255,0.2)' }}>
+            <p style={{ fontSize: '11px', opacity: 0.8 }}>Total Templates: {stats.totalTemplates}</p>
+            <p style={{ fontSize: '11px', opacity: 0.8 }}>Sensitive Variables: {stats.sensitiveVariablesCount}</p>
           </div>
         </div>
 
         {/* PAGE 2: Executive Summary */}
-        <div className={`${A4_STYLES.container} ${A4_STYLES.padding} flex flex-col`}>
-          <h2 className={A4_STYLES.header}>Executive Summary</h2>
-          
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="bg-gray-50 p-2 rounded">
-              <p className="text-xs font-bold text-gray-600">Total Templates</p>
-              <p className="text-lg font-bold text-gray-900">{stats.totalTemplates}</p>
+        <div data-report-page style={pageStyle}>
+          <h2 style={headerStyle}>Executive Summary</h2>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+            <div style={{ backgroundColor: '#f3f4f6', padding: '8px', borderRadius: '4px' }}>
+              <p style={{ fontSize: '10px', fontWeight: 'bold', color: '#6b7280' }}>TOTAL TEMPLATES</p>
+              <p style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827' }}>{stats.totalTemplates}</p>
             </div>
-            <div className="bg-gray-50 p-2 rounded">
-              <p className="text-xs font-bold text-gray-600">Sensitive Variables</p>
-              <p className="text-lg font-bold text-red-600">{stats.sensitiveVariablesCount}</p>
+            <div style={{ backgroundColor: '#f3f4f6', padding: '8px', borderRadius: '4px' }}>
+              <p style={{ fontSize: '10px', fontWeight: 'bold', color: '#6b7280' }}>SENSITIVE VARIABLES</p>
+              <p style={{ fontSize: '20px', fontWeight: 'bold', color: '#dc2626' }}>{stats.sensitiveVariablesCount}</p>
             </div>
-            <div className="bg-red-50 p-2 rounded">
-              <p className="text-xs font-bold text-red-600">High Risk</p>
-              <p className="text-lg font-bold text-red-700">{stats.highRiskCount}</p>
+            <div style={{ backgroundColor: '#fee2e2', padding: '8px', borderRadius: '4px' }}>
+              <p style={{ fontSize: '10px', fontWeight: 'bold', color: '#991b1b' }}>HIGH RISK</p>
+              <p style={{ fontSize: '20px', fontWeight: 'bold', color: '#7f1d1d' }}>{stats.highRiskCount}</p>
             </div>
-            <div className="bg-emerald-50 p-2 rounded">
-              <p className="text-xs font-bold text-emerald-600">Safe</p>
-              <p className="text-lg font-bold text-emerald-700">{stats.totalTemplates - stats.highRiskCount}</p>
+            <div style={{ backgroundColor: '#dcfce7', padding: '8px', borderRadius: '4px' }}>
+              <p style={{ fontSize: '10px', fontWeight: 'bold', color: '#166534' }}>SAFE</p>
+              <p style={{ fontSize: '20px', fontWeight: 'bold', color: '#15803d' }}>{stats.totalTemplates - stats.highRiskCount}</p>
             </div>
           </div>
 
-          <div className="mb-4">
-            <p className={`${A4_STYLES.header} mb-2`}>Risk Distribution</p>
-            <div className="space-y-1">
+          <div style={{ marginBottom: '16px' }}>
+            <h3 style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>Risk Distribution</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '11px' }}>
               {Object.entries(stats.riskDistribution).map(([level, count]) => (
-                <div key={level} className="flex justify-between text-xs">
-                  <span className="font-medium">{RISK_CONFIG[level as RiskLevel].label}</span>
-                  <span className="font-bold">{count}</span>
+                <div key={level} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontWeight: 'bold' }}>{RISK_CONFIG[level as RiskLevel].label}</span>
+                  <span style={{ fontWeight: 'bold' }}>{count}</span>
                 </div>
               ))}
             </div>
           </div>
 
           <div>
-            <p className={`${A4_STYLES.header} mb-2`}>Template Types</p>
-            <div className="space-y-1">
+            <h3 style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>Template Types</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '11px' }}>
               {Object.entries(stats.templateTypeDistribution).map(([type, count]) => (
-                <div key={type} className="flex justify-between text-xs">
-                  <span className="font-medium">{TEMPLATE_TYPE_LABELS[type as TemplateType]}</span>
-                  <span className="font-bold">{count}</span>
+                <div key={type} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontWeight: 'bold' }}>{TEMPLATE_TYPE_LABELS[type as TemplateType]}</span>
+                  <span style={{ fontWeight: 'bold' }}>{count}</span>
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        {/* PAGE 3-N: All Templates - Detail Listing */}
+        {/* PAGES 3+: All Templates - Paginated */}
         {templateSummaries
           .sort((a, b) => {
             const riskOrder = { HIGH: 0, MEDIUM: 1, LOW: 2, SAFE: 3 };
@@ -119,33 +165,36 @@ export const ReportTemplate = React.forwardRef<HTMLDivElement, ReportTemplatePro
             return pages;
           }, [])
           .map((pageTemplates, pageIdx) => (
-            <div key={`templates-page-${pageIdx}`} className={`${A4_STYLES.container} ${A4_STYLES.padding} overflow-hidden`}>
-              <h2 className={A4_STYLES.header}>All Templates - Part {pageIdx + 1}</h2>
-              
-              <table className="w-full text-xs border-collapse">
+            <div key={`templates-${pageIdx}`} data-report-page style={pageStyle}>
+              <h2 style={headerStyle}>All Templates - Part {pageIdx + 1}</h2>
+
+              <table style={tableStyle}>
                 <thead>
-                  <tr className="bg-gray-200">
-                    <th className={`${A4_STYLES.tableHeader} text-left`}>Template</th>
-                    <th className={`${A4_STYLES.tableHeader} text-center`}>Type</th>
-                    <th className={`${A4_STYLES.tableHeader} text-center`}>Risk</th>
-                    <th className={`${A4_STYLES.tableHeader} text-center`}>Sens</th>
+                  <tr>
+                    <th style={{ ...headerCellStyle, textAlign: 'left', width: '50%' }}>Template Name</th>
+                    <th style={{ ...headerCellStyle, textAlign: 'center', width: '15%' }}>Type</th>
+                    <th style={{ ...headerCellStyle, textAlign: 'center', width: '15%' }}>Risk</th>
+                    <th style={{ ...headerCellStyle, textAlign: 'center', width: '20%' }}>Sensitive</th>
                   </tr>
                 </thead>
                 <tbody>
                   {pageTemplates.map((template, i) => (
-                    <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                      <td className={`${A4_STYLES.tableCell} text-left font-medium`}>
-                        {template.templateName.substring(0, 30)}
-                      </td>
-                      <td className={`${A4_STYLES.tableCell} text-center`}>
+                    <tr key={i} style={{ backgroundColor: i % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
+                      <td style={{ ...cellStyle, textAlign: 'left' }}>{template.templateName.substring(0, 35)}</td>
+                      <td style={{ ...cellStyle, textAlign: 'center', fontSize: '10px' }}>
                         {TEMPLATE_TYPE_LABELS[template.templateType]}
                       </td>
-                      <td className={`${A4_STYLES.tableCell} text-center`}>
-                        <span className={`px-1 py-0.5 rounded ${RISK_CONFIG[template.riskLevel].bg} ${RISK_CONFIG[template.riskLevel].color} font-bold`}>
-                          {RISK_CONFIG[template.riskLevel].label}
-                        </span>
+                      <td
+                        style={{
+                          ...cellStyle,
+                          textAlign: 'center',
+                          fontWeight: 'bold',
+                          color: RISK_CONFIG[template.riskLevel].color
+                        }}
+                      >
+                        {RISK_CONFIG[template.riskLevel].label}
                       </td>
-                      <td className={`${A4_STYLES.tableCell} text-center font-bold text-red-600`}>
+                      <td style={{ ...cellStyle, textAlign: 'center', fontWeight: 'bold', color: '#dc2626' }}>
                         {template.sensitiveCount}
                       </td>
                     </tr>
@@ -155,45 +204,49 @@ export const ReportTemplate = React.forwardRef<HTMLDivElement, ReportTemplatePro
             </div>
           ))}
 
-        {/* Sensitive Variables - Detail Listing (Multiple Pages) */}
+        {/* PAGES: Sensitive Variables - Paginated */}
         {sensitiveVariables
           .reduce((pages: TemplateVariable[][], variable, idx) => {
-            if (idx % 20 === 0) pages.push([]);
+            if (idx % 18 === 0) pages.push([]);
             pages[pages.length - 1].push(variable);
             return pages;
           }, [])
           .map((pageVariables, pageIdx) => (
-            <div key={`variables-page-${pageIdx}`} className={`${A4_STYLES.container} ${A4_STYLES.padding} overflow-hidden`}>
-              <h2 className={A4_STYLES.header}>Sensitive Variables - Part {pageIdx + 1} of {Math.ceil(sensitiveVariables.length / 20)}</h2>
-              
-              <table className="w-full text-xs border-collapse">
+            <div key={`variables-${pageIdx}`} data-report-page style={pageStyle}>
+              <h2 style={headerStyle}>
+                Sensitive Variables - Part {pageIdx + 1} of {Math.ceil(sensitiveVariables.length / 18)}
+              </h2>
+
+              <table style={tableStyle}>
                 <thead>
-                  <tr className="bg-gray-200">
-                    <th className={`${A4_STYLES.tableHeader} text-left`}>Variable</th>
-                    <th className={`${A4_STYLES.tableHeader} text-left`}>Template</th>
-                    <th className={`${A4_STYLES.tableHeader} text-left`}>Category</th>
-                    <th className={`${A4_STYLES.tableHeader} text-center`}>Count</th>
+                  <tr>
+                    <th style={{ ...headerCellStyle, textAlign: 'left', width: '25%' }}>Variable</th>
+                    <th style={{ ...headerCellStyle, textAlign: 'left', width: '30%' }}>Template</th>
+                    <th style={{ ...headerCellStyle, textAlign: 'left', width: '25%' }}>Category</th>
+                    <th style={{ ...headerCellStyle, textAlign: 'center', width: '20%' }}>Count</th>
                   </tr>
                 </thead>
                 <tbody>
                   {pageVariables.map((variable, i) => (
-                    <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                      <td className={`${A4_STYLES.tableCell} text-left font-mono font-bold text-indigo-600`}>
-                        {variable.variableName.substring(0, 20)}
+                    <tr key={i} style={{ backgroundColor: i % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
+                      <td style={{ ...cellStyle, fontFamily: 'monospace', color: '#4f46e5', fontWeight: 'bold' }}>
+                        {variable.variableName.substring(0, 18)}
                       </td>
-                      <td className={`${A4_STYLES.tableCell} text-left`}>
-                        {variable.template.substring(0, 20)}
-                      </td>
-                      <td className={`${A4_STYLES.tableCell} text-left`}>
-                        <div className="flex items-center gap-1">
-                          <div 
-                            className="w-2 h-2 rounded-full" 
-                            style={{ backgroundColor: CATEGORY_COLORS[variable.categories[0] as Category] }}
+                      <td style={{ ...cellStyle }}>{variable.template.substring(0, 25)}</td>
+                      <td style={{ ...cellStyle }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <div
+                            style={{
+                              width: '8px',
+                              height: '8px',
+                              borderRadius: '50%',
+                              backgroundColor: CATEGORY_COLORS[variable.categories[0] as Category]
+                            }}
                           />
                           <span>{variable.categories[0]}</span>
                         </div>
                       </td>
-                      <td className={`${A4_STYLES.tableCell} text-center font-bold`}>
+                      <td style={{ ...cellStyle, textAlign: 'center', fontWeight: 'bold' }}>
                         {variable.count}
                       </td>
                     </tr>
@@ -203,34 +256,38 @@ export const ReportTemplate = React.forwardRef<HTMLDivElement, ReportTemplatePro
             </div>
           ))}
 
-        {/* Category Breakdown - Detail Listing */}
-        <div className={`${A4_STYLES.container} ${A4_STYLES.padding}`}>
-          <h2 className={A4_STYLES.header}>Category Breakdown</h2>
-          
-          <table className="w-full text-xs border-collapse">
+        {/* PAGE: Category Breakdown */}
+        <div data-report-page style={pageStyle}>
+          <h2 style={headerStyle}>Category Breakdown</h2>
+
+          <table style={tableStyle}>
             <thead>
-              <tr className="bg-gray-200">
-                <th className={`${A4_STYLES.tableHeader} text-left`}>Category</th>
-                <th className={`${A4_STYLES.tableHeader} text-center`}>Count</th>
-                <th className={`${A4_STYLES.tableHeader} text-center`}>Percentage</th>
+              <tr>
+                <th style={{ ...headerCellStyle, textAlign: 'left', width: '50%' }}>Category</th>
+                <th style={{ ...headerCellStyle, textAlign: 'center', width: '25%' }}>Count</th>
+                <th style={{ ...headerCellStyle, textAlign: 'center', width: '25%' }}>Percentage</th>
               </tr>
             </thead>
             <tbody>
               {Object.entries(stats.categoryDistribution)
                 .sort((a, b) => (b[1] as number) - (a[1] as number))
                 .map(([cat, count], i) => (
-                  <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                    <td className={`${A4_STYLES.tableCell} text-left flex items-center gap-2`}>
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: CATEGORY_COLORS[cat as Category] }}
+                  <tr key={i} style={{ backgroundColor: i % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
+                    <td style={{ ...cellStyle, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div
+                        style={{
+                          width: '10px',
+                          height: '10px',
+                          borderRadius: '50%',
+                          backgroundColor: CATEGORY_COLORS[cat as Category]
+                        }}
                       />
-                      <span className="font-medium">{cat}</span>
+                      <span style={{ fontWeight: 'bold' }}>{cat}</span>
                     </td>
-                    <td className={`${A4_STYLES.tableCell} text-center font-bold`}>
+                    <td style={{ ...cellStyle, textAlign: 'center', fontWeight: 'bold' }}>
                       {count as number}
                     </td>
-                    <td className={`${A4_STYLES.tableCell} text-center`}>
+                    <td style={{ ...cellStyle, textAlign: 'center' }}>
                       {((((count as number) / stats.sensitiveVariablesCount) * 100).toFixed(1))}%
                     </td>
                   </tr>
@@ -239,35 +296,43 @@ export const ReportTemplate = React.forwardRef<HTMLDivElement, ReportTemplatePro
           </table>
         </div>
 
-        {/* Recommendations Page */}
-        <div className={`${A4_STYLES.container} ${A4_STYLES.padding} flex flex-col`}>
-          <h2 className={A4_STYLES.header}>Recommendations</h2>
-          
-          <div className="space-y-2 text-xs">
-            <div className="border-l-4 border-red-500 bg-red-50 p-2 rounded-r">
-              <p className="font-bold text-red-900">High Priority: {stats.highRiskCount} High-Risk Templates</p>
-              <p className="text-red-700 text-xs">Require immediate remediation and enhanced security controls</p>
+        {/* PAGE: Recommendations */}
+        <div data-report-page style={pageStyle}>
+          <h2 style={headerStyle}>Recommendations</h2>
+
+          <div style={{ marginBottom: '12px' }}>
+            <div style={{ borderLeft: '4px solid #dc2626', backgroundColor: '#fee2e2', padding: '8px', marginBottom: '8px' }}>
+              <p style={{ fontSize: '12px', fontWeight: 'bold', color: '#7f1d1d', marginBottom: '4px' }}>
+                High Priority: {stats.highRiskCount} High-Risk Templates
+              </p>
+              <p style={{ fontSize: '11px', color: '#991b1b' }}>
+                Require immediate remediation and enhanced security controls.
+              </p>
             </div>
 
-            <div className="border-l-4 border-amber-500 bg-amber-50 p-2 rounded-r">
-              <p className="font-bold text-amber-900">Medium Priority: Medium-Risk Templates</p>
-              <p className="text-amber-700 text-xs">Review PII handling and implement additional safeguards</p>
+            <div style={{ borderLeft: '4px solid #f59e0b', backgroundColor: '#fef3c7', padding: '8px', marginBottom: '8px' }}>
+              <p style={{ fontSize: '12px', fontWeight: 'bold', color: '#92400e', marginBottom: '4px' }}>
+                Medium Priority: Medium-Risk Templates
+              </p>
+              <p style={{ fontSize: '11px', color: '#b45309' }}>Review PII handling and implement additional safeguards.</p>
             </div>
 
-            <div className="border-l-4 border-blue-500 bg-blue-50 p-2 rounded-r">
-              <p className="font-bold text-blue-900">Monitoring: Low-Risk Templates</p>
-              <p className="text-blue-700 text-xs">Continue regular compliance audits and maintain security standards</p>
+            <div style={{ borderLeft: '4px solid #3b82f6', backgroundColor: '#dbeafe', padding: '8px' }}>
+              <p style={{ fontSize: '12px', fontWeight: 'bold', color: '#1e40af', marginBottom: '4px' }}>
+                Monitoring: Low-Risk Templates
+              </p>
+              <p style={{ fontSize: '11px', color: '#1e3a8a' }}>Continue regular compliance audits and maintain security standards.</p>
             </div>
           </div>
 
-          <div className="mt-4 pt-4 border-t border-gray-300">
-            <p className="text-xs font-bold mb-2">Implementation Checklist:</p>
-            <ul className="space-y-1 text-xs">
-              <li>• Implement role-based access control (RBAC)</li>
-              <li>• Establish data retention and disposal policies</li>
-              <li>• Conduct quarterly security reviews</li>
-              <li>• Train staff on data sensitivity</li>
-              <li>• Maintain comprehensive audit logs</li>
+          <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #e5e7eb' }}>
+            <p style={{ fontSize: '11px', fontWeight: 'bold', marginBottom: '8px' }}>Implementation Checklist:</p>
+            <ul style={{ fontSize: '10px', lineHeight: '1.6', color: '#374151', marginLeft: '16px' }}>
+              <li>✓ Implement role-based access control (RBAC)</li>
+              <li>✓ Establish data retention and disposal policies</li>
+              <li>✓ Conduct quarterly security reviews</li>
+              <li>✓ Train staff on data sensitivity</li>
+              <li>✓ Maintain comprehensive audit logs</li>
             </ul>
           </div>
         </div>
