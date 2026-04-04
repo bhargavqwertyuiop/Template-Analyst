@@ -56,6 +56,22 @@ export default function App() {
     });
   }, [processedData, searchQuery, selectedCategory, selectedRisk, showSensitiveOnly]);
 
+  const toggleSensitiveOnly = () => {
+    const nextShowSensitiveOnly = !showSensitiveOnly;
+    if (nextShowSensitiveOnly && selectedRisk === 'SAFE') {
+      setSelectedRisk('ALL');
+    }
+    setShowSensitiveOnly(nextShowSensitiveOnly);
+  };
+
+  const riskOptions: Array<{ value: RiskLevel | 'ALL'; label: string }> = [
+    { value: 'ALL', label: 'All Risk Levels' },
+    { value: 'HIGH', label: 'High Risk' },
+    { value: 'MEDIUM', label: 'Medium Risk' },
+    { value: 'LOW', label: 'Low Risk' },
+    ...(showSensitiveOnly ? [] : [{ value: 'SAFE' as RiskLevel, label: 'Safe' }])
+  ];
+
   const exportToCSV = () => {
     if (!processedData) return;
     const headers = ['Template', 'Module', 'Object Path', 'Variable', 'Type', 'Categories', 'Flow', 'Count'];
@@ -244,7 +260,7 @@ export default function App() {
             <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2">
               <span className="text-sm font-medium text-gray-600">Sensitive Only</span>
               <button 
-                onClick={() => setShowSensitiveOnly(!showSensitiveOnly)}
+                onClick={toggleSensitiveOnly}
                 className={`w-10 h-5 rounded-full transition-colors relative ${showSensitiveOnly ? 'bg-indigo-600' : 'bg-gray-200'}`}
               >
                 <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-transform ${showSensitiveOnly ? 'translate-x-6' : 'translate-x-1'}`} />
@@ -267,11 +283,9 @@ export default function App() {
               onChange={(e) => setSelectedRisk(e.target.value as RiskLevel | 'ALL')}
               className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
             >
-              <option value="ALL">All Risk Levels</option>
-              <option value="HIGH">High Risk</option>
-              <option value="MEDIUM">Medium Risk</option>
-              <option value="LOW">Low Risk</option>
-              <option value="SAFE">Safe</option>
+              {riskOptions.map(option => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
             </select>
           </div>
         </div>
