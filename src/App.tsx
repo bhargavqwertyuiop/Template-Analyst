@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   ShieldCheck, Search, Filter, RefreshCcw, 
   Download, AlertCircle, LayoutDashboard, 
@@ -11,16 +11,38 @@ import {
   ChevronRight, X, FileDown, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { 
   processRawData, RawTemplateData, TemplateVariable, 
-  TemplateSummary, DashboardStats, Category, RiskLevel 
+  TemplateSummary, DashboardStats, Category, RiskLevel, TemplateType,
+  calculateStats
 } from './lib/analyzer';
 import { FileUpload } from './components/FileUpload';
 import { SummaryCards, Charts } from './components/Dashboard';
 import { TemplateList, VariableTable } from './components/TemplateAnalysis';
-import { ReportTemplate } from './components/ReportTemplate';
+
+const RISK_STYLES: Record<RiskLevel, { label: string; bg: string; text: string; border: string }> = {
+  HIGH: { label: 'High Risk', bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
+  MEDIUM: { label: 'Medium Risk', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
+  LOW: { label: 'Low Risk', bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+  SAFE: { label: 'Safe', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' }
+};
+
+const TEMPLATE_TYPE_LABELS: Record<TemplateType, string> = {
+  BASE_TEMPLATE: 'Base Template (Master)',
+  BLOCK: 'Block',
+  SNIPPET: 'Snippet',
+  TEMPLATE: 'Template'
+};
+
+const CATEGORY_LABELS: Record<Category, string> = {
+  EMAIL: 'Email',
+  PII: 'PII',
+  FINANCIAL: 'Financial',
+  SECURITY: 'Security',
+  CONTACT: 'Contact',
+  NONE: 'None'
+};
 
 export default function App() {
   const [rawData, setRawData] = useState<RawTemplateData[] | null>(null);
@@ -33,10 +55,10 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<Category | 'ALL'>('ALL');
   const [selectedRisk, setSelectedRisk] = useState<RiskLevel | 'ALL'>('ALL');
+  const [selectedTemplateType, setSelectedTemplateType] = useState<TemplateType | 'ALL'>('ALL');
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateSummary | null>(null);
-  const [showSensitiveOnly, setShowSensitiveOnly] = useState(true);
+  const [showSensitiveOnly, setShowSensitiveOnly] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
-  const reportRef = useRef<HTMLDivElement>(null);
 
   const handleDataLoaded = (data: RawTemplateData[]) => {
     setRawData(data);
@@ -52,22 +74,76 @@ export default function App() {
       const matchesCategory = selectedCategory === 'ALL' || summary.categories.has(selectedCategory as Category);
       const matchesRisk = selectedRisk === 'ALL' || summary.riskLevel === selectedRisk;
       const matchesSensitive = !showSensitiveOnly || summary.sensitiveCount > 0;
-      return matchesSearch && matchesCategory && matchesRisk && matchesSensitive;
+      const matchesTemplateType = selectedTemplateType === 'ALL' || summary.templateType === selectedTemplateType;
+      return matchesSearch && matchesCategory && matchesRisk && matchesSensitive && matchesTemplateType;
     });
-  }, [processedData, searchQuery, selectedCategory, selectedRisk, showSensitiveOnly]);
+  }, [processedData, searchQuery, selectedCategory, selectedRisk, showSensitiveOnly, selectedTemplateType]);
+
+  const filteredStats = useMemo(() => {
+    if (!processedData) return null;
+    return calculateStats(filteredSummaries);
+  }, [processedData, filteredSummaries]);
+
+  const toggleSensitiveOnly = () => {
+    const nextShowSensitiveOnly = !showSensitiveOnly;
+    if (nextShowSensitiveOnly && selectedRisk === 'SAFE') {
+      setSelectedRisk('ALL');
+    }
+    setShowSensitiveOnly(nextShowSensitiveOnly);
+  };
+
+  const riskOptions: Array<{ value: RiskLevel | 'ALL'; label: string }> = [
+    { value: 'ALL', label: 'All Risk Levels' },
+    { value: 'HIGH', label: 'High Risk' },
+    { value: 'MEDIUM', label: 'Medium Risk' },
+    { value: 'LOW', label: 'Low Risk' },
+    ...(showSensitiveOnly ? [] : [{ value: 'SAFE' as RiskLevel, label: 'Safe' }])
+  ];
+
+  const selectedTemplateCategoryBreakdown = useMemo(() => {
+    if (!selectedTemplate) return new Map<Category, number>();
+    const breakdown = new Map<Category, number>();
+    selectedTemplate.variables.forEach(v => {
+      v.categories.forEach(cat => {
+        breakdown.set(cat, (breakdown.get(cat) || 0) + 1);
+      });
+    });
+    return breakdown;
+  }, [selectedTemplate]);
+
+  const selectedTemplateRiskNote = useMemo(() => {
+    if (!selectedTemplate) return '';
+    const { sensitiveCount, totalCount } = selectedTemplate;
+    const percentage = totalCount > 0 ? ((sensitiveCount / totalCount) * 100).toFixed(1) : '0.0';
+    return `${percentage}% of variables are sensitive.`;
+  }, [selectedTemplate]);
 
   const exportToCSV = () => {
-    if (!processedData) return;
+    if (!processedData || filteredSummaries.length === 0) {
+      alert('No data available for export');
+      return;
+    }
+    
     const headers = ['Template', 'Module', 'Object Path', 'Variable', 'Type', 'Categories', 'Flow', 'Count'];
-    const rows = processedData.allVariables.map(v => [
+    const filteredVariables = filteredSummaries.flatMap(s => s.variables);
+    
+    const escapeCSV = (val: any) => {
+      const stringVal = String(val);
+      if (stringVal.includes(',') || stringVal.includes('"') || stringVal.includes('\n')) {
+        return `"${stringVal.replace(/"/g, '""')}"`;
+      }
+      return stringVal;
+    };
+
+    const rows = filteredVariables.map(v => [
       v.template, v.module, v.objectPath, v.variableName, v.type, v.categories.join('|'), v.flow, v.count
-    ]);
-    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    ].map(escapeCSV));
+    const csvContent = [headers.map(escapeCSV), ...rows].map(e => e.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", "ccm_template_analysis.csv");
+    link.setAttribute("download", `ccm_template_analysis_${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -75,37 +151,142 @@ export default function App() {
   };
 
   const exportToPDF = async () => {
-    if (!processedData || !reportRef.current) return;
-    
+    if (!processedData || !filteredStats || filteredSummaries.length === 0) {
+      alert('No data available for export');
+      return;
+    }
+
     setIsExportingPDF(true);
     try {
-      const canvas = await html2canvas(reportRef.current, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff'
-      });
-      
-      const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
         orientation: 'portrait',
-        unit: 'px',
-        format: [canvas.width, canvas.height]
+        unit: 'mm',
+        format: 'a4'
       });
+
+      const margin = 15;
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const availableWidth = pageWidth - margin * 2;
+      const lineHeight = 6;
+      let cursorY = margin;
+
+      const nextPage = () => {
+        pdf.addPage();
+        cursorY = margin;
+      };
+
+      const addLine = (text: string, options: { align?: 'left' | 'center' | 'right' } = {}) => {
+        const lines = pdf.splitTextToSize(text, availableWidth);
+        lines.forEach((line, index) => {
+          if (cursorY + lineHeight > pageHeight - margin) {
+            nextPage();
+          }
+          pdf.text(line, margin, cursorY, { align: options.align || 'left' });
+          cursorY += lineHeight;
+        });
+      };
+
+      const addSectionTitle = (title: string) => {
+        pdf.setFontSize(13);
+        pdf.setFont('helvetica', 'bold');
+        addLine(title);
+        cursorY += 2;
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+      };
+
+      const addKeyValue = (key: string, value: string | number) => {
+        addLine(`${key}: ${value}`);
+      };
+
+      addSectionTitle('Template Variable Analysis Report');
+      addLine(`Generated: ${new Date().toLocaleDateString()}`);
+      addLine('Prepared by Template Analyst');
+      if (searchQuery) addLine(`Search Filter: "${searchQuery}"`);
+      cursorY += 2;
+      addKeyValue('Total Templates', filteredStats.totalTemplates);
+      addKeyValue('Total Variables', filteredStats.totalVariables);
+      addKeyValue('Sensitive Variables', filteredStats.sensitiveVariablesCount);
+      addKeyValue('High Risk Templates', filteredStats.highRiskCount);
+      addLine('');
+
+      addSectionTitle('Report Summary');
+      addLine('This report provides an executive overview of template risk exposure and sensitive variable findings for the filtered CCM dataset.');
+      addLine('');
+
+      addSectionTitle('Risk Distribution');
+      Object.entries(filteredStats.riskDistribution).forEach(([name, value]) => {
+        addLine(`• ${name}: ${value}`);
+      });
+      addLine('');
+
+      addSectionTitle('Template Type Distribution');
+      Object.entries(filteredStats.templateTypeDistribution).forEach(([name, value]) => {
+        const label = name === 'BASE_TEMPLATE' ? 'Base Template (Master)' :
+          name === 'BLOCK' ? 'Block' :
+          name === 'SNIPPET' ? 'Snippet' : 'Template';
+        addLine(`• ${label}: ${value}`);
+      });
+      addLine('');
+
+      addSectionTitle('Templates by Type');
       
-      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+      const templatesByType: Record<string, TemplateSummary[]> = {};
+      filteredSummaries.forEach(template => {
+        if (!templatesByType[template.templateType]) {
+          templatesByType[template.templateType] = [];
+        }
+        templatesByType[template.templateType].push(template);
+      });
+
+      const typeOrder = ['BASE_TEMPLATE', 'BLOCK', 'SNIPPET', 'TEMPLATE'];
+      
+      typeOrder.forEach(type => {
+        const templates = templatesByType[type] || [];
+        if (templates.length === 0) return;
+        
+        const typeLabel = type === 'BASE_TEMPLATE' ? 'Base Template (Master)' :
+          type === 'BLOCK' ? 'Block' :
+          type === 'SNIPPET' ? 'Snippet' : 'Template';
+        
+        addLine(`${typeLabel} (${templates.length} templates)`);
+        
+        templates.forEach((template) => {
+          addLine(`  • ${template.templateName}`);
+          
+          template.variables.forEach((variable, varIndex) => {
+            const flowInfo = variable.flow ? ` [Flow: ${variable.flow}]` : '';
+            const categoryInfo = variable.categories.length > 0 ? ` [${variable.categories.join(', ')}]` : '';
+            addLine(`    ${varIndex + 1}. ${variable.variableName}${flowInfo}${categoryInfo}`);
+          });
+          
+          addLine('');
+        });
+      });
+
       pdf.save(`CCM_Security_Report_${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (error) {
       console.error('PDF Generation Error:', error);
+      alert('Failed to generate PDF. Please try again.');
     } finally {
       setIsExportingPDF(false);
     }
   };
 
   const resetData = () => {
-    setRawData(null);
-    setProcessedData(null);
-    setSelectedTemplate(null);
+    try {
+      setRawData(null);
+      setProcessedData(null);
+      setSelectedTemplate(null);
+      setSearchQuery('');
+      setSelectedCategory('ALL');
+      setSelectedRisk('ALL');
+      setShowSensitiveOnly(false);
+      setSelectedTemplateType('ALL');
+    } catch (error) {
+      console.error('Error resetting data:', error);
+    }
   };
 
   if (!processedData) {
@@ -233,7 +414,7 @@ export default function App() {
       </header>
 
       <main className="flex-1 p-8 max-w-[1600px] mx-auto w-full">
-        <SummaryCards stats={processedData.stats} />
+        {filteredStats && <SummaryCards stats={filteredStats} />}
         
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
@@ -244,7 +425,7 @@ export default function App() {
             <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2">
               <span className="text-sm font-medium text-gray-600">Sensitive Only</span>
               <button 
-                onClick={() => setShowSensitiveOnly(!showSensitiveOnly)}
+                onClick={toggleSensitiveOnly}
                 className={`w-10 h-5 rounded-full transition-colors relative ${showSensitiveOnly ? 'bg-indigo-600' : 'bg-gray-200'}`}
               >
                 <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-transform ${showSensitiveOnly ? 'translate-x-6' : 'translate-x-1'}`} />
@@ -267,16 +448,25 @@ export default function App() {
               onChange={(e) => setSelectedRisk(e.target.value as RiskLevel | 'ALL')}
               className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
             >
-              <option value="ALL">All Risk Levels</option>
-              <option value="HIGH">High Risk</option>
-              <option value="MEDIUM">Medium Risk</option>
-              <option value="LOW">Low Risk</option>
-              <option value="SAFE">Safe</option>
+              {riskOptions.map(option => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+            <select 
+              value={selectedTemplateType}
+              onChange={(e) => setSelectedTemplateType(e.target.value as TemplateType | 'ALL')}
+              className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+            >
+              <option value="ALL">All Template Types</option>
+              <option value="BASE_TEMPLATE">Base Template (Master)</option>
+              <option value="BLOCK">Block</option>
+              <option value="SNIPPET">Snippet</option>
+              <option value="TEMPLATE">Template</option>
             </select>
           </div>
         </div>
 
-        <Charts stats={processedData.stats} templateSummaries={processedData.templateSummaries} />
+        {filteredStats && <Charts stats={filteredStats} templateSummaries={filteredSummaries} />}
 
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
           <div className="xl:col-span-5">
@@ -296,26 +486,85 @@ export default function App() {
                   exit={{ opacity: 0, x: -20 }}
                   className="space-y-6"
                 >
-                  <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-1">{selectedTemplate.templateName}</h3>
-                      <p className="text-sm text-gray-500">
-                        Analyzing {showSensitiveOnly ? selectedTemplate.sensitiveCount : selectedTemplate.totalCount} variables
+                  <div className="bg-gradient-to-br from-white to-slate-50 p-8 rounded-2xl border border-slate-200 shadow-sm">
+                    <div className="flex flex-col gap-6">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 pb-6 border-b border-slate-200">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.32em] text-indigo-600 font-semibold mb-2">Template Report</p>
+                          <h3 className="text-2xl font-bold text-gray-900 mb-2">{selectedTemplate.templateName}</h3>
+                          <p className="text-sm text-gray-600">{selectedTemplateRiskNote}</p>
+                        </div>
+                        <button 
+                          onClick={() => setSelectedTemplate(null)}
+                          className="p-2 hover:bg-white rounded-lg transition-colors"
+                        >
+                          <X className="w-5 h-5 text-gray-400" />
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                        <div className="rounded-3xl border border-gray-100 bg-white p-4 shadow-sm">
+                          <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Risk level</p>
+                          <span className={`inline-flex items-center rounded-full px-3 py-2 text-xs font-semibold ${RISK_STYLES[selectedTemplate.riskLevel].bg} ${RISK_STYLES[selectedTemplate.riskLevel].text}`}>
+                            {RISK_STYLES[selectedTemplate.riskLevel].label}
+                          </span>
+                        </div>
+                        <div className="rounded-3xl border border-gray-100 bg-white p-4 shadow-sm">
+                          <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Template type</p>
+                          <span className="inline-flex items-center rounded-full bg-blue-50 text-blue-700 px-3 py-2 text-xs font-semibold">
+                            {TEMPLATE_TYPE_LABELS[selectedTemplate.templateType]}
+                          </span>
+                        </div>
+                        <div className="rounded-3xl border border-gray-100 bg-white p-4 shadow-sm">
+                          <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Total variables</p>
+                          <p className="text-3xl font-bold text-gray-900">{selectedTemplate.totalCount}</p>
+                        </div>
+                        <div className="rounded-3xl border border-gray-100 bg-white p-4 shadow-sm">
+                          <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Sensitive</p>
+                          <p className="text-3xl font-bold text-red-600">{selectedTemplate.sensitiveCount}</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        <div className="rounded-3xl border border-gray-100 bg-white p-4 shadow-sm">
+                          <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Detected categories</p>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedTemplate.categories.size > 0 ? Array.from(selectedTemplate.categories).map((category: Category) => (
+                              <span key={category} className="inline-flex items-center rounded-full bg-indigo-100 px-3 py-1 text-xs font-medium text-indigo-700">
+                                {CATEGORY_LABELS[category]} ({selectedTemplateCategoryBreakdown.get(category) ?? 0})
+                              </span>
+                            )) : (
+                              <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">No sensitive categories detected</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="rounded-3xl border border-gray-100 bg-white p-4 shadow-sm">
+                          <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Template path</p>
+                          <p className="text-sm text-gray-700 break-all font-mono bg-slate-50 p-3 rounded-xl border border-slate-100">
+                            {selectedTemplate.templatePath}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="border-b border-gray-100 px-6 py-4 bg-gradient-to-r from-gray-50 to-white">
+                      <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">Variables</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {showSensitiveOnly ? 'Sensitive variables only' : 'All variables'} (
+                        {showSensitiveOnly ? selectedTemplate.variables.filter(v => v.categories.length > 0).length : selectedTemplate.variables.length}
+                        )
                       </p>
                     </div>
-                    <button 
-                      onClick={() => setSelectedTemplate(null)}
-                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                    >
-                      <X className="w-5 h-5 text-gray-400" />
-                    </button>
+                    <VariableTable 
+                      variables={showSensitiveOnly 
+                        ? selectedTemplate.variables.filter(v => v.categories.length > 0) 
+                        : selectedTemplate.variables
+                      } 
+                    />
                   </div>
-                  <VariableTable 
-                    variables={showSensitiveOnly 
-                      ? selectedTemplate.variables.filter(v => v.categories.length > 0) 
-                      : selectedTemplate.variables
-                    } 
-                  />
                 </motion.div>
               ) : (
                 <motion.div
@@ -351,19 +600,6 @@ export default function App() {
           <p className="text-xs text-gray-400">© 2026 Quadient Inspire CCM Security. All rights reserved.</p>
         </div>
       </footer>
-
-      {/* Hidden Report Template for PDF Export */}
-      <div className="absolute left-[-9999px] top-0">
-        {processedData && (
-          <ReportTemplate 
-            ref={reportRef}
-            stats={processedData.stats}
-            templateSummaries={processedData.templateSummaries}
-            allVariables={processedData.allVariables}
-            date={new Date().toLocaleDateString()}
-          />
-        )}
-      </div>
     </div>
   );
 }

@@ -13,18 +13,65 @@ interface FileUploadProps {
 }
 
 export function FileUpload({ onDataLoaded }: FileUploadProps) {
+  if (typeof onDataLoaded !== 'function') {
+    console.error('FileUpload: onDataLoaded callback is not a function');
+    return null;
+  }
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const processFile = useCallback((file: File) => {
+  const processFile = useCallback((file: File | null) => {
+    if (!file) {
+      setError('No file selected');
+      return;
+    }
+
+    // Validate file type
+    const validTypes = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel', 'text/csv'];
+    if (!validTypes.includes(file.type) && !file.name.match(/\.(xlsx|xls|csv)$/i)) {
+      setError('Please upload a valid Excel (.xlsx, .xls) or CSV file');
+      return;
+    }
+
+    // Validate file size (max 50MB)
+    if (file.size > 50 * 1024 * 1024) {
+      setError('File size exceeds 50MB limit');
+      return;
+    }
+
     const reader = new FileReader();
+    reader.onerror = () => {
+      setError('Failed to read file. Please try again.');
+      console.error('FileReader error:', reader.error);
+    };
     reader.onload = (e) => {
       try {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const result = e.target?.result;
+        if (!result || !(result instanceof ArrayBuffer)) {
+          setError('Invalid file data');
+          return;
+        }
+        const data = new Uint8Array(result);
         const workbook = XLSX.read(data, { type: 'array' });
+        
+        if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+          setError('No sheets found in workbook');
+          return;
+        }
+        
         const firstSheetName = workbook.SheetNames[0];
+        if (!firstSheetName) {
+          setError('Invalid sheet name');
+          return;
+        }
+        
         const worksheet = workbook.Sheets[firstSheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet) as RawTemplateData[];
+        if (!worksheet) {
+          setError('Failed to read worksheet');
+          return;
+        }
+        
+        const jsonData = (XLSX.utils.sheet_to_json(worksheet) || []) as RawTemplateData[];
         
         if (jsonData.length === 0) {
           setError('The file appears to be empty.');

@@ -53,18 +53,23 @@ interface TemplateListProps {
 export function TemplateList({ risks, onSelectTemplate, selectedTemplate }: TemplateListProps) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      <div className="p-6 border-b border-gray-50 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">Template Risk Analysis</h3>
-        <div className="flex items-center gap-2 text-xs text-gray-400">
-          <span className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full bg-red-500" /> High
-          </span>
-          <span className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full bg-amber-500" /> Medium
-          </span>
-          <span className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full bg-blue-500" /> Low
-          </span>
+      <div className="p-6 border-b border-gray-50">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Template Risk Summary</h3>
+            <p className="text-sm text-gray-500">{risks.length} templates analyzed. Select a template to inspect sensitive variables, category exposure, and risk drivers.</p>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-gray-400">
+            <span className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-red-500" /> High
+            </span>
+            <span className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-amber-500" /> Medium
+            </span>
+            <span className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-blue-500" /> Low
+            </span>
+          </div>
         </div>
       </div>
       <div className="divide-y divide-gray-50 max-h-[600px] overflow-y-auto">
@@ -87,9 +92,14 @@ export function TemplateList({ risks, onSelectTemplate, selectedTemplate }: Temp
                 </div>
                 <div>
                   <h4 className="font-semibold text-gray-900 mb-1">{risk.templateName}</h4>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full ${config.bg} ${config.color}`}>
                       {config.label}
+                    </span>
+                    <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
+                      {risk.templateType === 'BASE_TEMPLATE' ? 'Base Template (Master)' :
+                       risk.templateType === 'BLOCK' ? 'Block' :
+                       risk.templateType === 'SNIPPET' ? 'Snippet' : 'Template'}
                     </span>
                     <span className="text-xs text-gray-400">
                       {risk.sensitiveCount} / {risk.totalCount} sensitive
@@ -99,7 +109,7 @@ export function TemplateList({ risks, onSelectTemplate, selectedTemplate }: Temp
               </div>
               <div className="flex items-center gap-4">
                 <div className="flex -space-x-2">
-                  {Array.from(risk.categories).slice(0, 3).map((cat, i) => (
+                  {Array.from(risk.categories).map((cat, i) => (
                     <div 
                       key={i} 
                       className="w-8 h-8 rounded-full bg-white border-2 border-white shadow-sm flex items-center justify-center"
@@ -130,13 +140,21 @@ interface VariableTableProps {
 }
 
 export function VariableTable({ variables }: VariableTableProps) {
+  if (variables.length === 0) {
+    return (
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center">
+        <p className="text-sm font-medium text-gray-500">No variables match the current view. Try toggling the sensitive filter or selecting a different template.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm text-left">
           <thead className="bg-gray-50 text-gray-500 uppercase text-[10px] tracking-wider font-bold">
             <tr>
-              <th className="px-6 py-4">Variable Name</th>
+              <th className="px-6 py-4">Variable</th>
               <th className="px-6 py-4">Type</th>
               <th className="px-6 py-4">Categories</th>
               <th className="px-6 py-4">Flow / Section</th>
@@ -150,6 +168,7 @@ export function VariableTable({ variables }: VariableTableProps) {
                   <div className="font-mono text-indigo-600 bg-indigo-50 px-2 py-1 rounded inline-block" title={v.objectPath}>
                     {v.variableName}
                   </div>
+                  <div className="text-[11px] text-gray-400 mt-1">{v.objectPath}</div>
                 </td>
                 <td className="px-6 py-4">
                   <span 
@@ -171,7 +190,7 @@ export function VariableTable({ variables }: VariableTableProps) {
                         {cat}
                       </div>
                     )) : (
-                      <span className="text-gray-300">—</span>
+                      <span className="text-gray-300">None</span>
                     )}
                   </div>
                 </td>
