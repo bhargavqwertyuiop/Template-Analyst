@@ -12,7 +12,7 @@ import {
   Layout, ShieldAlert, Database, AlertTriangle, 
   Mail, User, CreditCard, Lock, Phone 
 } from 'lucide-react';
-import { DashboardStats, Category, TemplateSummary, VariableType } from '../lib/analyzer';
+import { DashboardStats, Category, TemplateSummary, RiskLevel, VariableType, TemplateType } from '../lib/analyzer';
 
 const CATEGORY_COLORS: Record<Category, string> = {
   EMAIL: '#3b82f6', // blue-500
@@ -21,6 +21,20 @@ const CATEGORY_COLORS: Record<Category, string> = {
   SECURITY: '#ef4444', // red-500
   CONTACT: '#10b981', // emerald-500
   NONE: '#94a3b8' // slate-400
+};
+
+const RISK_COLORS: Record<RiskLevel, string> = {
+  HIGH: '#ef4444', // red-500
+  MEDIUM: '#f59e0b', // amber-500
+  LOW: '#3b82f6', // blue-500
+  SAFE: '#10b981' // emerald-500
+};
+
+const TEMPLATE_TYPE_COLORS: Record<TemplateType, string> = {
+  BASE_TEMPLATE: '#a78bfa', // violet-400
+  BLOCK: '#60a5fa', // blue-400
+  SNIPPET: '#34d399', // emerald-400
+  TEMPLATE: '#fbbf24' // amber-400
 };
 
 const TYPE_COLORS: Record<VariableType, string> = {
@@ -105,14 +119,24 @@ export function Charts({ stats, templateSummaries }: ChartsProps) {
       value
     }));
 
-  const typeData = Object.entries(stats.typeDistribution).map(([name, value]) => ({
+  const riskData = Object.entries(stats.riskDistribution).map(([name, value]) => ({
     name,
     value
   }));
 
+  const templateTypeData = Object.entries(stats.templateTypeDistribution)
+    .filter(([name, value]) => value > 0)
+    .map(([name, value]) => ({
+      name: name === 'BASE_TEMPLATE' ? 'Base Template (Master)' :
+            name === 'BLOCK' ? 'Block' :
+            name === 'SNIPPET' ? 'Snippet' : 'Template',
+      value,
+      type: name
+    }));
+
   const barData = templateSummaries
     .sort((a, b) => b.sensitiveCount - a.sensitiveCount)
-    .slice(0, 10)
+    .slice(0, 50)
     .map(t => ({
       name: t.templateName.length > 20 ? t.templateName.substring(0, 17) + '...' : t.templateName,
       fullName: t.templateName,
@@ -121,7 +145,7 @@ export function Charts({ stats, templateSummaries }: ChartsProps) {
     }));
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-8 mb-8">
       <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Category Distribution</h3>
         <div className="h-[250px]">
@@ -150,12 +174,12 @@ export function Charts({ stats, templateSummaries }: ChartsProps) {
       </div>
 
       <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Variable Types</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Risk Level Distribution</h3>
         <div className="h-[250px]">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
-                data={typeData}
+                data={riskData}
                 cx="50%"
                 cy="50%"
                 innerRadius={50}
@@ -163,8 +187,35 @@ export function Charts({ stats, templateSummaries }: ChartsProps) {
                 paddingAngle={5}
                 dataKey="value"
               >
-                {typeData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={TYPE_COLORS[entry.name as VariableType]} />
+                {riskData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={RISK_COLORS[entry.name as RiskLevel]} />
+                ))}
+              </Pie>
+              <Tooltip 
+                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+              />
+              <Legend verticalAlign="bottom" height={36}/>
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Template Type Distribution</h3>
+        <div className="h-[250px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={templateTypeData}
+                cx="50%"
+                cy="50%"
+                innerRadius={50}
+                outerRadius={80}
+                paddingAngle={5}
+                dataKey="value"
+              >
+                {templateTypeData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={TEMPLATE_TYPE_COLORS[entry.type as TemplateType]} />
                 ))}
               </Pie>
               <Tooltip 
@@ -194,8 +245,8 @@ export function Charts({ stats, templateSummaries }: ChartsProps) {
               <Tooltip 
                 cursor={{ fill: '#f8fafc' }}
                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                formatter={(value: number) => [value, 'Sensitive Variables']}
-                labelFormatter={(label, payload) => payload[0]?.payload?.fullName || label}
+                formatter={(value) => [value, 'Sensitive Variables']}
+                labelFormatter={(label) => (Array.isArray(label) ? label[0] : label)}
               />
               <Bar dataKey="sensitive" fill="#ef4444" radius={[0, 4, 4, 0]} barSize={15} />
             </BarChart>
