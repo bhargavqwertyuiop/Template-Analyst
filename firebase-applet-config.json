@@ -1,9 +1,9 @@
 {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_ID,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MSG_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+  "apiKey": "__VITE_FIREBASE_API_KEY__",
+  "authDomain": "__VITE_FIREBASE_AUTH__",
+  "projectId": "__VITE_FIREBASE_PROJECT_ID__",
+  "storageBucket": "__VITE_FIREBASE_STORAGE_ID__",
+  "messagingSenderId": "__VITE_FIREBASE_MSG_ID__",
+  "appId": "__VITE_FIREBASE_APP_ID__",
+  "measurementId": "__VITE_FIREBASE_MEASUREMENT_ID__"
 }
