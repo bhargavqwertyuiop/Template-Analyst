@@ -30,23 +30,23 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: Install Dependencies
-        run: npm install
-
-      - name: Build React App
-        run: npm run build
+      - name: Replace tokens in JSON
+        uses: cschleiden/replace-tokens@v1
+        with:
+          files: 'firebase-applet-config.json'
         env:
-          # Mapping Secrets
+          # Match these exactly to the placeholders in your JSON (without the underscores)
           VITE_FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
           VITE_FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
           VITE_FIREBASE_AUTH: ${{ secrets.FIREBASE_AUTH }}
           VITE_FIREBASE_MEASUREMENT_ID: ${{ secrets.FIREBASE_MEASUREMENT_ID }}
           VITE_FIREBASE_MSG_ID: ${{ secrets.FIREBASE_MSG_ID }}
           VITE_FIREBASE_STORAGE_ID: ${{ secrets.FIREBASE_STORAGE_ID }}
-          
-          # Mapping the Variable
           VITE_FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
-      
+
+      - name: Install and Build
+        run: npm install && npm run build
+        
 #      - name: Upload Build Artifact
 #        uses: actions/upload-pages-artifact@v3
 #        with:
