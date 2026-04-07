@@ -1,5 +1,5 @@
 {
-  "name": "CCM Template Sensitive Data Analyst",
-  "description": "Analyze Quadient Inspire templates for PII, financial, and security data usage with risk scoring, visualization, and professional PDF/CSV reporting.",
+  "name": "Template Security Analyst",
+  "description": "A comprehensive dashboard for analyzing Quadient Inspire CCM templates, detecting sensitive variables (PII, Financial, Security), and assessing risk levels with dynamic keyword dictionaries and interactive visualizations.",
   "requestFramePermissions": []
 }

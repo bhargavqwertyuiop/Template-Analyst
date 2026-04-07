@@ -5,20 +5,21 @@
 
 import React, { useCallback, useState } from 'react';
 import * as XLSX from 'xlsx';
-import { Upload, FileText, AlertCircle } from 'lucide-react';
+import { 
+  Upload, FileText, AlertCircle, 
+  Loader2, FileSpreadsheet, FileCode,
+  ArrowUpCircle
+} from 'lucide-react';
 import { RawTemplateData } from '../lib/analyzer';
 
 interface FileUploadProps {
-  onDataLoaded: (data: RawTemplateData[]) => void;
+  onDataLoaded: (data: RawTemplateData[], fileName: string) => void;
 }
 
 export function FileUpload({ onDataLoaded }: FileUploadProps) {
-  if (typeof onDataLoaded !== 'function') {
-    console.error('FileUpload: onDataLoaded callback is not a function');
-    return null;
-  }
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const processFile = useCallback((file: File | null) => {
     if (!file) {
@@ -26,16 +27,22 @@ export function FileUpload({ onDataLoaded }: FileUploadProps) {
       return;
     }
 
+    setIsLoading(true);
+    setError(null);
+
     // Validate file type
     const validTypes = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel', 'text/csv'];
+    
     if (!validTypes.includes(file.type) && !file.name.match(/\.(xlsx|xls|csv)$/i)) {
       setError('Please upload a valid Excel (.xlsx, .xls) or CSV file');
+      setIsLoading(false);
       return;
     }
 
     // Validate file size (max 50MB)
     if (file.size > 50 * 1024 * 1024) {
       setError('File size exceeds 50MB limit');
+      setIsLoading(false);
       return;
     }
 
@@ -43,31 +50,31 @@ export function FileUpload({ onDataLoaded }: FileUploadProps) {
     reader.onerror = () => {
       setError('Failed to read file. Please try again.');
       console.error('FileReader error:', reader.error);
+      setIsLoading(false);
     };
     reader.onload = (e) => {
       try {
         const result = e.target?.result;
         if (!result || !(result instanceof ArrayBuffer)) {
           setError('Invalid file data');
+          setIsLoading(false);
           return;
         }
         const data = new Uint8Array(result);
-        const workbook = XLSX.read(data, { type: 'array' });
+        
+        const workbook = XLSX.read(data, { type: 'array', FS: ';' });
         
         if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
           setError('No sheets found in workbook');
+          setIsLoading(false);
           return;
         }
         
         const firstSheetName = workbook.SheetNames[0];
-        if (!firstSheetName) {
-          setError('Invalid sheet name');
-          return;
-        }
-        
         const worksheet = workbook.Sheets[firstSheetName];
         if (!worksheet) {
           setError('Failed to read worksheet');
+          setIsLoading(false);
           return;
         }
         
@@ -75,6 +82,7 @@ export function FileUpload({ onDataLoaded }: FileUploadProps) {
         
         if (jsonData.length === 0) {
           setError('The file appears to be empty.');
+          setIsLoading(false);
           return;
         }
 
@@ -85,14 +93,17 @@ export function FileUpload({ onDataLoaded }: FileUploadProps) {
 
         if (missingColumns.length > 0) {
           setError(`Missing required columns: ${missingColumns.join(', ')}`);
+          setIsLoading(false);
           return;
         }
 
-        onDataLoaded(jsonData);
+        onDataLoaded(jsonData, file.name);
         setError(null);
       } catch (err) {
         setError('Failed to parse the file. Please ensure it is a valid Excel or CSV file.');
         console.error(err);
+      } finally {
+        setIsLoading(false);
       }
     };
     reader.readAsArrayBuffer(file);
@@ -111,83 +122,77 @@ export function FileUpload({ onDataLoaded }: FileUploadProps) {
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto p-8">
+    <div className="w-full max-w-3xl mx-auto p-4 sm:p-8">
       <div
         onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
         className={`
-          relative border-2 border-dashed rounded-2xl p-12 transition-all duration-300
-          flex flex-col items-center justify-center text-center cursor-pointer
-          ${isDragging ? 'border-indigo-500 bg-indigo-50/50' : 'border-gray-300 hover:border-indigo-400 hover:bg-gray-50'}
+          relative border-3 border-dashed rounded-[2.5rem] p-12 transition-all duration-500
+          flex flex-col items-center justify-center text-center group
+          ${isDragging 
+            ? 'border-gray-500 bg-gray-50/80 scale-[1.02]' 
+            : 'border-gray-200 hover:border-gray-400 hover:bg-gray-50/50'}
+          ${isLoading ? 'opacity-50 pointer-events-none' : ''}
         `}
       >
         <input
           type="file"
           accept=".xlsx, .xls, .csv"
           onChange={handleFileChange}
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+          disabled={isLoading}
         />
         
-        <div className="bg-indigo-100 p-4 rounded-full mb-4">
-          <Upload className="w-8 h-8 text-indigo-600" />
+        <div className={`
+          p-6 rounded-3xl mb-6 transition-all duration-500
+          ${isDragging ? 'bg-gray-800 text-white rotate-12 scale-110' : 'bg-gray-50 text-gray-600 group-hover:scale-110 group-hover:-rotate-6'}
+        `}>
+          {isLoading ? (
+            <Loader2 className="w-12 h-12 animate-spin" />
+          ) : isDragging ? (
+            <ArrowUpCircle className="w-12 h-12" />
+          ) : (
+            <Upload className="w-12 h-12" />
+          )}
         </div>
         
-        <h3 className="text-xl font-semibold text-gray-900 mb-2">
-          Upload Template Analysis Data
+        <h3 className="text-2xl font-extrabold text-gray-900 mb-3 tracking-tight">
+          {isLoading ? 'Analyzing Data...' : 'Drop your analysis file here'}
         </h3>
-        <p className="text-gray-500 mb-6">
-          Drag and drop your Excel or CSV file here, or click to browse
+        <p className="text-gray-500 max-w-xs mx-auto mb-10 text-sm leading-relaxed">
+          Upload Quadient Inspire exports (.xlsx, .csv) to detect sensitive variables and assess risk.
         </p>
         
-        <div className="flex items-center gap-4 text-sm text-gray-400">
-          <div className="flex items-center gap-1">
-            <FileText className="w-4 h-4" />
-            <span>.xlsx</span>
+        <div className="flex flex-col items-center gap-8">
+          <div className="flex items-center gap-4 px-6 py-3 bg-white border border-gray-200 rounded-2xl shadow-sm group-hover:shadow-md transition-all">
+            <div className="flex -space-x-2">
+              <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center text-green-600 border border-green-100">
+                <FileSpreadsheet className="w-4 h-4" />
+              </div>
+              <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
+                <FileText className="w-4 h-4" />
+              </div>
+            </div>
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Excel • CSV</span>
           </div>
-          <div className="flex items-center gap-1">
-            <FileText className="w-4 h-4" />
-            <span>.csv</span>
-          </div>
+
+          <button className="px-10 py-4 bg-gray-800 hover:bg-gray-900 text-white font-bold rounded-2xl shadow-xl shadow-gray-200 transition-all flex items-center gap-3 active:scale-95">
+            <Upload className="w-5 h-5" />
+            Browse Files
+          </button>
         </div>
       </div>
 
       {error && (
-        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3 text-red-700">
-          <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
-          <p className="text-sm">{error}</p>
+        <div className="mt-8 p-5 bg-red-50 border border-red-100 rounded-3xl flex items-start gap-4 text-red-700 shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
+          <AlertCircle className="w-6 h-6 mt-0.5 flex-shrink-0" />
+          <div className="space-y-1">
+            <p className="text-sm font-bold">Upload Error</p>
+            <p className="text-xs font-medium opacity-80">{error}</p>
+          </div>
         </div>
       )}
-
-      <div className="mt-8 bg-blue-50 p-6 rounded-xl border border-blue-100">
-        <h4 className="text-sm font-semibold text-blue-900 mb-3 uppercase tracking-wider">
-          Expected Format
-        </h4>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs text-blue-800">
-            <thead>
-              <tr className="border-b border-blue-200">
-                <th className="text-left py-2 px-2">WfdName</th>
-                <th className="text-left py-2 px-2">Module Name</th>
-                <th className="text-left py-2 px-2">Object Name</th>
-                <th className="text-left py-2 px-2">Object Type</th>
-                <th className="text-left py-2 px-2">First Used in</th>
-                <th className="text-left py-2 px-2">Found Count</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="py-2 px-2">vcs://.../template.wfd</td>
-                <td className="py-2 px-2">DocumentLayout</td>
-                <td className="py-2 px-2">Data.EmailTo</td>
-                <td className="py-2 px-2">Variable</td>
-                <td className="py-2 px-2">Pages</td>
-                <td className="py-2 px-2">1</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
   );
 }

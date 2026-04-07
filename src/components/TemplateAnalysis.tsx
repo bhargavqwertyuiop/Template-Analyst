@@ -30,9 +30,9 @@ const RISK_CONFIG: Record<RiskLevel, { icon: React.ReactNode; color: string; bg:
   },
   LOW: {
     icon: <AlertCircle className="w-4 h-4" />,
-    color: 'text-blue-700',
-    bg: 'bg-blue-50',
-    border: 'border-blue-200',
+    color: 'text-slate-700',
+    bg: 'bg-slate-50',
+    border: 'border-slate-200',
     label: 'Low Risk'
   },
   SAFE: {
@@ -48,9 +48,24 @@ interface TemplateListProps {
   risks: TemplateSummary[];
   onSelectTemplate: (template: TemplateSummary | null) => void;
   selectedTemplate: TemplateSummary | null;
+  searchQuery?: string;
 }
 
-export function TemplateList({ risks, onSelectTemplate, selectedTemplate }: TemplateListProps) {
+function highlightText(text: string, searchTerm: string | undefined) {
+  if (!searchTerm || !text) return text;
+
+  const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`(${escapedSearchTerm})`, 'gi');
+  const parts = text.split(regex);
+
+  return parts.map((part, index) =>
+    part.toLowerCase() === searchTerm.toLowerCase()
+      ? <span key={index} className="bg-yellow-200 text-gray-900 px-0.5 rounded font-bold">{part}</span>
+      : part
+  );
+}
+
+export function TemplateList({ risks, onSelectTemplate, selectedTemplate, searchQuery }: TemplateListProps) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       <div className="p-6 border-b border-gray-50">
@@ -67,7 +82,7 @@ export function TemplateList({ risks, onSelectTemplate, selectedTemplate }: Temp
               <div className="w-2 h-2 rounded-full bg-amber-500" /> Medium
             </span>
             <span className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-blue-500" /> Low
+              <div className="w-2 h-2 rounded-full bg-slate-500" /> Low
             </span>
           </div>
         </div>
@@ -83,7 +98,7 @@ export function TemplateList({ risks, onSelectTemplate, selectedTemplate }: Temp
               onClick={() => onSelectTemplate(isSelected ? null : risk)}
               className={`
                 w-full p-6 text-left transition-all duration-200 flex items-center justify-between
-                ${isSelected ? 'bg-indigo-50/50' : 'hover:bg-gray-50'}
+                ${isSelected ? 'bg-gray-100' : 'hover:bg-gray-50'}
               `}
             >
               <div className="flex items-center gap-4">
@@ -91,12 +106,17 @@ export function TemplateList({ risks, onSelectTemplate, selectedTemplate }: Temp
                   {config.icon}
                 </div>
                 <div>
-                  <h4 className="font-semibold text-gray-900 mb-1">{risk.templateName}</h4>
+                  <h4 className="font-semibold text-gray-900 mb-1">
+                    {highlightText(risk.templateName, searchQuery)}
+                  </h4>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full ${config.bg} ${config.color}`}>
                       {config.label}
                     </span>
-                    <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
+                    <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full bg-gray-900 text-white`}>
+                      Score: {risk.riskScore}
+                    </span>
+                    <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700`}>
                       {risk.templateType === 'BASE_TEMPLATE' ? 'Base Template (Master)' :
                        risk.templateType === 'BLOCK' ? 'Block' :
                        risk.templateType === 'SNIPPET' ? 'Snippet' : 'Template'}
@@ -137,9 +157,10 @@ export function TemplateList({ risks, onSelectTemplate, selectedTemplate }: Temp
 
 interface VariableTableProps {
   variables: TemplateVariable[];
+  searchQuery?: string;
 }
 
-export function VariableTable({ variables }: VariableTableProps) {
+export function VariableTable({ variables, searchQuery }: VariableTableProps) {
   if (variables.length === 0) {
     return (
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center">
@@ -165,10 +186,12 @@ export function VariableTable({ variables }: VariableTableProps) {
             {variables.map((v, i) => (
               <tr key={i} className="hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4">
-                  <div className="font-mono text-indigo-600 bg-indigo-50 px-2 py-1 rounded inline-block" title={v.objectPath}>
-                    {v.variableName}
+                  <div className="font-mono text-gray-800 bg-gray-100 px-2 py-1 rounded inline-block" title={v.objectPath}>
+                    {highlightText(v.variableName, searchQuery)}
                   </div>
-                  <div className="text-[11px] text-gray-400 mt-1">{v.objectPath}</div>
+                  <div className="text-[11px] text-gray-400 mt-1">
+                    {highlightText(v.objectPath, searchQuery)}
+                  </div>
                 </td>
                 <td className="px-6 py-4">
                   <span 
