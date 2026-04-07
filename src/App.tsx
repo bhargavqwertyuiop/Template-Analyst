@@ -3,37 +3,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   ShieldCheck, Search, Filter, RefreshCcw, 
   Download, AlertCircle, LayoutDashboard, 
   Database, FileText, Settings, HelpCircle,
-  ChevronRight, X, FileDown, Loader2, Upload,
-  LogOut, User as UserIcon
+  ChevronRight, X, FileDown, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import jsPDF from 'jspdf';
-import Papa from 'papaparse';
-import { 
-  collection, query, where, orderBy, limit, 
-  getDocs, addDoc, deleteDoc, doc, writeBatch,
-  getDocFromServer, onSnapshot
-} from 'firebase/firestore';
-import { signOut } from 'firebase/auth';
 import { 
   processRawData, RawTemplateData, TemplateVariable, 
   TemplateSummary, DashboardStats, Category, RiskLevel, TemplateType,
-  calculateStats, DEFAULT_SENSITIVE_DICTIONARY, Dictionary, parseDictionaryCSV
+  calculateStats
 } from './lib/analyzer';
 import { FileUpload } from './components/FileUpload';
 import { SummaryCards, Charts } from './components/Dashboard';
 import { TemplateList, VariableTable } from './components/TemplateAnalysis';
-import { DictionaryManager } from './components/DictionaryManager';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { Login } from './components/auth/Login';
-import { Signup } from './components/auth/Signup';
-import { auth, db } from './firebase';
-import { handleFirestoreError, OperationType } from './lib/firebaseUtils';
 
 const RISK_STYLES: Record<RiskLevel, { label: string; bg: string; text: string; border: string }> = {
   HIGH: { label: 'High Risk', bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
@@ -59,16 +45,6 @@ const CATEGORY_LABELS: Record<Category, string> = {
 };
 
 export default function App() {
-  return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
-  );
-}
-
-function AppContent() {
-  const { user, loading: authLoading } = useAuth();
-  const [isSignup, setIsSignup] = useState(false);
   const [rawData, setRawData] = useState<RawTemplateData[] | null>(null);
   const [processedData, setProcessedData] = useState<{
     allVariables: TemplateVariable[];
@@ -77,178 +53,17 @@ function AppContent() {
   } | null>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [sensitiveDictionary, setSensitiveDictionary] = useState<Dictionary>(() => {
-    const saved = localStorage.getItem('sensitive_dictionary');
-    return saved ? JSON.parse(saved) : DEFAULT_SENSITIVE_DICTIONARY;
-  });
   const [selectedCategory, setSelectedCategory] = useState<Category | 'ALL'>('ALL');
   const [selectedRisk, setSelectedRisk] = useState<RiskLevel | 'ALL'>('ALL');
   const [selectedTemplateType, setSelectedTemplateType] = useState<TemplateType | 'ALL'>('ALL');
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateSummary | null>(null);
   const [showSensitiveOnly, setShowSensitiveOnly] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
-  const [isDictionaryManagerOpen, setIsDictionaryManagerOpen] = useState(false);
-  const [history, setHistory] = useState<Array<{
-    id: string;
-    timestamp: string;
-    fileName: string;
-    stats: DashboardStats;
-    data: RawTemplateData[];
-  }>>(() => {
-    const cached = localStorage.getItem('recent_analyses');
-    return cached ? JSON.parse(cached) : [];
-  });
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [isInitialHistoryLoad, setIsInitialHistoryLoad] = useState(true);
 
-  // Test Firestore connection on boot
-  useEffect(() => {
-    async function testConnection() {
-      try {
-        await getDocFromServer(doc(db, 'test', 'connection'));
-        console.log("Firestore connection successful.");
-      } catch (error) {
-        console.error("Firebase connection test failed:", error);
-        if(error instanceof Error && (error.message.includes('the client is offline') || error.message.includes('permission-denied'))) {
-          console.error("Please check your Firebase configuration and ensure Firestore is enabled with correct rules.");
-        }
-      }
-    }
-    testConnection();
-  }, []);
-
-  // Fetch history from Firestore with real-time updates and caching
-  useEffect(() => {
-    if (!user) {
-      setHistory([]);
-      return;
-    }
-
-    const path = 'analysisHistory';
-    const q = query(
-      collection(db, path),
-      where('userId', '==', user.uid),
-      orderBy('timestamp', 'desc')
-    );
-
-    setHistoryLoading(true);
-    
-    const unsubscribe = onSnapshot(q, (querySnapshot: any) => {
-      const fetchedHistory = querySnapshot.docs.map((doc: any) => ({
-        id: doc.id,
-        ...doc.data(),
-        data: JSON.parse(doc.data().data)
-      })) as any[];
-      
-      setHistory(fetchedHistory);
-      localStorage.setItem('recent_analyses', JSON.stringify(fetchedHistory));
-      setHistoryLoading(false);
-      setIsInitialHistoryLoad(false);
-    }, (error: any) => {
-      handleFirestoreError(error, OperationType.GET, path);
-      setHistoryLoading(false);
-      setIsInitialHistoryLoad(false);
-    });
-
-    return () => unsubscribe();
-  }, [user]);
-
-  const handleDataLoaded = async (data: RawTemplateData[], fileName: string = 'Uploaded File') => {
-    if (!user) return;
-
+  const handleDataLoaded = (data: RawTemplateData[]) => {
     setRawData(data);
-    const processed = processRawData(data, sensitiveDictionary);
+    const processed = processRawData(data);
     setProcessedData(processed);
-
-    // Add to Firestore history
-    const path = 'analysisHistory';
-    try {
-      const newEntry = {
-        userId: user.uid,
-        timestamp: new Date().toISOString(),
-        fileName,
-        stats: processed.stats,
-        data: JSON.stringify(data)
-      };
-      const docRef = await addDoc(collection(db, path), newEntry);
-      
-      // Update local history state
-      const historyEntry = {
-        id: docRef.id,
-        ...newEntry,
-        data
-      };
-      setHistory(prev => [historyEntry, ...prev]);
-    } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, path);
-    }
-  };
-
-  const loadFromHistory = (entry: typeof history[0]) => {
-    setRawData(entry.data);
-    const processed = processRawData(entry.data, sensitiveDictionary);
-    setProcessedData(processed);
-  };
-
-  const clearHistory = async () => {
-    if (!user) return;
-    const path = 'analysisHistory';
-    try {
-      const q = query(collection(db, path), where('userId', '==', user.uid));
-      const querySnapshot = await getDocs(q);
-      const batch = writeBatch(db);
-      querySnapshot.docs.forEach((d) => {
-        batch.delete(d.ref);
-      });
-      await batch.commit();
-      setHistory([]);
-    } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, path);
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      resetData();
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
-
-  const handleDictionaryUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        const newDictionary = parseDictionaryCSV(results.data);
-        saveDictionary(newDictionary);
-        alert('Sensitive dictionary updated successfully!');
-      },
-      error: (error) => {
-        console.error('CSV Parsing Error:', error);
-        alert('Failed to parse dictionary CSV.');
-      }
-    });
-  };
-
-  const saveDictionary = (newDictionary: Dictionary) => {
-    setSensitiveDictionary(newDictionary);
-    localStorage.setItem('sensitive_dictionary', JSON.stringify(newDictionary));
-    
-    // Re-process data if it exists
-    if (rawData) {
-      const processed = processRawData(rawData, newDictionary);
-      setProcessedData(processed);
-    }
-  };
-
-  const resetDictionary = () => {
-    saveDictionary(DEFAULT_SENSITIVE_DICTIONARY);
-    localStorage.removeItem('sensitive_dictionary');
   };
 
   const filteredSummaries = useMemo(() => {
@@ -474,28 +289,12 @@ function AppContent() {
     }
   };
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-12 h-12 text-gray-600 animate-spin" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return isSignup ? (
-      <Signup onSwitchToLogin={() => setIsSignup(false)} />
-    ) : (
-      <Login onSwitchToSignup={() => setIsSignup(true)} />
-    );
-  }
-
   if (!processedData) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
-        <header className="bg-white border-b border-gray-100 px-4 sm:px-8 py-4 flex flex-col sm:flex-row items-center justify-between sticky top-0 z-50 gap-4">
+        <header className="bg-white border-b border-gray-100 px-8 py-4 flex items-center justify-between sticky top-0 z-50">
           <div className="flex items-center gap-3">
-            <div className="bg-gray-800 p-2 rounded-xl shadow-gray-200 shadow-lg">
+            <div className="bg-indigo-600 p-2 rounded-xl shadow-indigo-200 shadow-lg">
               <ShieldCheck className="w-6 h-6 text-white" />
             </div>
             <div>
@@ -503,23 +302,12 @@ function AppContent() {
               <p className="text-xs text-gray-400 font-medium uppercase tracking-widest">Security Dashboard</p>
             </div>
           </div>
-          <div className="flex items-center gap-4 sm:gap-6">
-            <div className="flex items-center gap-3 px-4 py-2 bg-gray-50 rounded-xl border border-gray-100">
-              <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-gray-600 border border-gray-200">
-                <UserIcon className="w-4 h-4" />
-              </div>
-              <div className="flex items-center gap-4">
-                <p className="text-xs font-bold text-gray-900">{user.email}</p>
-                <button 
-                  onClick={handleLogout} 
-                  className="px-3 py-1 text-[10px] font-bold text-white bg-red-500 hover:bg-red-600 rounded-lg uppercase tracking-wider transition-colors"
-                >
-                  Sign Out
-                </button>
-              </div>
-            </div>
-            <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
+          <div className="flex items-center gap-4">
+            <button className="p-2 text-gray-400 hover:text-indigo-600 transition-colors">
               <HelpCircle className="w-5 h-5" />
+            </button>
+            <button className="p-2 text-gray-400 hover:text-indigo-600 transition-colors">
+              <Settings className="w-5 h-5" />
             </button>
           </div>
         </header>
@@ -539,106 +327,28 @@ function AppContent() {
               </p>
             </div>
             
-            <div className="bg-white rounded-3xl shadow-2xl shadow-gray-100/50 border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-3xl shadow-2xl shadow-indigo-100/50 border border-gray-100 overflow-hidden">
               <FileUpload onDataLoaded={handleDataLoaded} />
             </div>
 
-            {(!authLoading && !rawData) && (
-              <div className="mt-12">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-bold text-gray-900">Recent Analyses</h3>
-                  {history.length > 0 && (
-                    <button onClick={clearHistory} className="text-xs font-bold text-gray-400 hover:text-red-500 uppercase tracking-wider">Clear History</button>
-                  )}
-                </div>
-                
-                {historyLoading && isInitialHistoryLoad ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {[1, 2, 3, 4].map(i => (
-                      <div key={i} className="p-5 bg-white rounded-2xl border border-gray-100 shadow-sm animate-pulse">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-gray-100 rounded-lg" />
-                            <div className="space-y-2">
-                              <div className="w-24 h-3 bg-gray-100 rounded" />
-                              <div className="w-16 h-2 bg-gray-50 rounded" />
-                            </div>
-                          </div>
-                          <div className="w-4 h-4 bg-gray-50 rounded" />
-                        </div>
-                        <div className="grid grid-cols-3 gap-2">
-                          <div className="h-10 bg-gray-50 rounded-xl" />
-                          <div className="h-10 bg-gray-50 rounded-xl" />
-                          <div className="h-10 bg-gray-50 rounded-xl" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : history.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
-                    {history.map(entry => (
-                      <button 
-                        key={entry.id}
-                        onClick={() => loadFromHistory(entry)}
-                        className="p-5 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-all text-left group"
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 bg-gray-50 rounded-lg text-gray-600 group-hover:bg-gray-800 group-hover:text-white transition-colors">
-                              <FileText className="w-4 h-4" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-bold text-gray-900 truncate max-w-[150px]">{entry.fileName}</p>
-                              <p className="text-[10px] text-gray-400">{new Date(entry.timestamp).toLocaleString()}</p>
-                            </div>
-                          </div>
-                          <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-gray-800 transition-colors" />
-                        </div>
-                        <div className="grid grid-cols-3 gap-2">
-                          <div className="text-center p-2 bg-gray-50 rounded-xl">
-                            <p className="text-[9px] font-bold text-gray-400 uppercase">Templates</p>
-                            <p className="text-sm font-bold text-gray-900">{entry.stats.totalTemplates}</p>
-                          </div>
-                          <div className="text-center p-2 bg-gray-50 rounded-xl">
-                            <p className="text-[9px] font-bold text-gray-400 uppercase">Sensitive</p>
-                            <p className="text-sm font-bold text-red-600">{entry.stats.sensitiveVariablesCount}</p>
-                          </div>
-                          <div className="text-center p-2 bg-gray-50 rounded-xl">
-                            <p className="text-[9px] font-bold text-gray-400 uppercase">High Risk</p>
-                            <p className="text-sm font-bold text-amber-600">{entry.stats.highRiskCount}</p>
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-12 bg-gray-50 border-2 border-dashed border-gray-200 rounded-3xl text-center">
-                    <FileText className="w-8 h-8 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-500 font-medium">No history available</p>
-                    <p className="text-xs text-gray-400 mt-1">Upload a file to start your first analysis.</p>
-                  </div>
-                )}
-              </div>
-            )}
-
             <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="flex flex-col items-center text-center p-6">
-                <div className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
-                  <Database className="w-6 h-6 text-gray-600" />
+                <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center mb-4">
+                  <Database className="w-6 h-6 text-blue-600" />
                 </div>
                 <h4 className="font-bold text-gray-900 mb-2">Data Extraction</h4>
                 <p className="text-sm text-gray-500">Automatically extracts variable names from complex object paths.</p>
               </div>
               <div className="flex flex-col items-center text-center p-6">
-                <div className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
-                  <ShieldCheck className="w-6 h-6 text-gray-600" />
+                <div className="w-12 h-12 bg-purple-100 rounded-2xl flex items-center justify-center mb-4">
+                  <ShieldCheck className="w-6 h-6 text-purple-600" />
                 </div>
                 <h4 className="font-bold text-gray-900 mb-2">Risk Scoring</h4>
                 <p className="text-sm text-gray-500">Intelligent categorization and risk assessment based on data sensitivity.</p>
               </div>
               <div className="flex flex-col items-center text-center p-6">
-                <div className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
-                  <LayoutDashboard className="w-6 h-6 text-gray-600" />
+                <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center mb-4">
+                  <LayoutDashboard className="w-6 h-6 text-amber-600" />
                 </div>
                 <h4 className="font-bold text-gray-900 mb-2">Visual Insights</h4>
                 <p className="text-sm text-gray-500">Interactive charts and tables to help you prioritize security fixes.</p>
@@ -652,9 +362,9 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <header className="bg-white border-b border-gray-100 px-4 sm:px-8 py-4 flex flex-col lg:flex-row items-center justify-between sticky top-0 z-50 gap-4">
-        <div className="flex items-center gap-3 w-full lg:w-auto">
-          <div className="bg-gray-800 p-2 rounded-xl shadow-gray-200 shadow-lg">
+      <header className="bg-white border-b border-gray-100 px-8 py-4 flex items-center justify-between sticky top-0 z-50">
+        <div className="flex items-center gap-3">
+          <div className="bg-indigo-600 p-2 rounded-xl shadow-indigo-200 shadow-lg">
             <ShieldCheck className="w-6 h-6 text-white" />
           </div>
           <div>
@@ -663,114 +373,60 @@ function AppContent() {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
-          <div className="relative group w-full sm:w-64 lg:w-96">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 group-focus-within:text-gray-600 transition-colors" />
+        <div className="flex items-center gap-4">
+          <div className="relative group">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 group-focus-within:text-indigo-500 transition-colors" />
             <input 
               type="text" 
               placeholder="Search templates or variables..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-500/20 focus:border-gray-500 transition-all w-full"
+              className="pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all w-64 lg:w-96"
             />
           </div>
-          
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <label className="flex items-center gap-2 px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-gray-50 transition-colors bg-white rounded-xl cursor-pointer border border-gray-200 hover:border-gray-300 h-10">
-                <Upload className="w-3 h-3" />
-                Upload CSV
-                <input type="file" accept=".csv" className="hidden" onChange={handleDictionaryUpload} />
-              </label>
-              <button 
-                onClick={() => setIsDictionaryManagerOpen(true)}
-                className="flex items-center gap-2 px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-gray-50 transition-colors bg-white rounded-xl border border-gray-200 hover:border-gray-300 h-10"
-              >
-                <Settings className="w-3 h-3" />
-                Keywords
-              </button>
-            </div>
-            <div className="flex items-center gap-2 px-3 py-1 bg-gray-50 rounded-xl border border-gray-100 h-10">
-              <span className="px-2 py-0.5 bg-gray-800 text-white text-[10px] font-bold rounded-md uppercase tracking-wider">
-                {Object.values(sensitiveDictionary).flat().length} Active
-              </span>
-              {localStorage.getItem('sensitive_dictionary') && (
-                <button 
-                  onClick={resetDictionary} 
-                  className="px-2 py-1 text-[10px] text-red-500 hover:bg-red-50 rounded-lg font-bold uppercase tracking-wider transition-colors"
-                >
-                  Reset
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => { resetData(); setSelectedTemplate(null); }}
-              className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-              title="Reset View"
-            >
-              <RefreshCcw className="w-4 h-4" />
-            </button>
-            <button 
-              onClick={exportToCSV}
-              className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-              title="Export CSV"
-            >
-              <Download className="w-4 h-4" />
-            </button>
-            <button 
-              onClick={exportToPDF}
-              disabled={isExportingPDF}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-gray-800 hover:bg-gray-900 transition-all rounded-xl shadow-lg shadow-gray-200 disabled:opacity-50 disabled:cursor-not-allowed h-10"
-            >
-              {isExportingPDF ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <FileDown className="w-4 h-4" />
-              )}
-              {isExportingPDF ? '...' : 'PDF'}
-            </button>
-          </div>
-
-          <div className="flex items-center gap-3 px-4 py-2 bg-gray-50 rounded-xl border border-gray-100 h-10">
-            <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-gray-600 border border-gray-200">
-              <UserIcon className="w-3 h-3" />
-            </div>
-            <div className="flex items-center gap-3">
-              <p className="text-[10px] font-bold text-gray-900 truncate max-w-[80px]">{user.email}</p>
-              <button 
-                onClick={handleLogout} 
-                className="px-2 py-0.5 text-[9px] font-bold text-white bg-red-500 hover:bg-red-600 rounded-md uppercase tracking-wider transition-colors"
-              >
-                Sign Out
-              </button>
-            </div>
-          </div>
+          <button 
+            onClick={() => { resetData(); setSelectedTemplate(null); }}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-600 hover:text-indigo-600 transition-colors bg-white border border-gray-200 rounded-xl hover:border-indigo-200"
+          >
+            <RefreshCcw className="w-4 h-4" />
+            Reset
+          </button>
+          <button 
+            onClick={exportToCSV}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-600 hover:text-indigo-600 transition-colors bg-white border border-gray-200 rounded-xl hover:border-indigo-200"
+          >
+            <Download className="w-4 h-4" />
+            Export CSV
+          </button>
+          <button 
+            onClick={exportToPDF}
+            disabled={isExportingPDF}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-all rounded-xl shadow-lg shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isExportingPDF ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <FileDown className="w-4 h-4" />
+            )}
+            {isExportingPDF ? 'Generating...' : 'Export PDF'}
+          </button>
         </div>
       </header>
 
       <main className="flex-1 p-8 max-w-[1600px] mx-auto w-full">
-        {filteredStats && (
-          <SummaryCards 
-            stats={filteredStats} 
-          />
-        )}
+        {filteredStats && <SummaryCards stats={filteredStats} />}
         
-        <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
-          <div className="flex items-center gap-4 w-full md:w-auto">
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-gray-400" />
-              <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Filters</span>
-            </div>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-gray-400" />
+            <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Filters</span>
           </div>
-          <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
-            <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2 flex-1 md:flex-none justify-between">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2">
               <span className="text-sm font-medium text-gray-600">Sensitive Only</span>
               <button 
                 onClick={toggleSensitiveOnly}
-                className={`w-10 h-5 rounded-full transition-colors relative ${showSensitiveOnly ? 'bg-gray-800' : 'bg-gray-200'}`}
+                className={`w-10 h-5 rounded-full transition-colors relative ${showSensitiveOnly ? 'bg-indigo-600' : 'bg-gray-200'}`}
               >
                 <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-transform ${showSensitiveOnly ? 'translate-x-6' : 'translate-x-1'}`} />
               </button>
@@ -778,7 +434,7 @@ function AppContent() {
             <select 
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value as Category | 'ALL')}
-              className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500/20 flex-1 md:flex-none"
+              className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
             >
               <option value="ALL">All Categories</option>
               <option value="EMAIL">Email</option>
@@ -790,7 +446,7 @@ function AppContent() {
             <select 
               value={selectedRisk}
               onChange={(e) => setSelectedRisk(e.target.value as RiskLevel | 'ALL')}
-              className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500/20 flex-1 md:flex-none"
+              className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
             >
               {riskOptions.map(option => (
                 <option key={option.value} value={option.value}>{option.label}</option>
@@ -799,7 +455,7 @@ function AppContent() {
             <select 
               value={selectedTemplateType}
               onChange={(e) => setSelectedTemplateType(e.target.value as TemplateType | 'ALL')}
-              className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500/20 flex-1 md:flex-none"
+              className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
             >
               <option value="ALL">All Template Types</option>
               <option value="BASE_TEMPLATE">Base Template (Master)</option>
@@ -810,12 +466,7 @@ function AppContent() {
           </div>
         </div>
 
-        {filteredStats && (
-          <Charts 
-            stats={filteredStats} 
-            templateSummaries={filteredSummaries} 
-          />
-        )}
+        {filteredStats && <Charts stats={filteredStats} templateSummaries={filteredSummaries} />}
 
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
           <div className="xl:col-span-5">
@@ -823,7 +474,6 @@ function AppContent() {
               risks={filteredSummaries} 
               onSelectTemplate={setSelectedTemplate}
               selectedTemplate={selectedTemplate}
-              searchQuery={searchQuery}
             />
           </div>
           <div className="xl:col-span-7">
@@ -840,7 +490,7 @@ function AppContent() {
                     <div className="flex flex-col gap-6">
                       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 pb-6 border-b border-slate-200">
                         <div>
-                          <p className="text-xs uppercase tracking-[0.32em] text-gray-600 font-semibold mb-2">Template Report</p>
+                          <p className="text-xs uppercase tracking-[0.32em] text-indigo-600 font-semibold mb-2">Template Report</p>
                           <h3 className="text-2xl font-bold text-gray-900 mb-2">{selectedTemplate.templateName}</h3>
                           <p className="text-sm text-gray-600">{selectedTemplateRiskNote}</p>
                         </div>
@@ -880,7 +530,7 @@ function AppContent() {
                           <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Detected categories</p>
                           <div className="flex flex-wrap gap-2">
                             {selectedTemplate.categories.size > 0 ? Array.from(selectedTemplate.categories).map((category: Category) => (
-                              <span key={category} className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+                              <span key={category} className="inline-flex items-center rounded-full bg-indigo-100 px-3 py-1 text-xs font-medium text-indigo-700">
                                 {CATEGORY_LABELS[category]} ({selectedTemplateCategoryBreakdown.get(category) ?? 0})
                               </span>
                             )) : (
@@ -913,7 +563,6 @@ function AppContent() {
                         ? selectedTemplate.variables.filter(v => v.categories.length > 0) 
                         : selectedTemplate.variables
                       } 
-                      searchQuery={searchQuery}
                     />
                   </div>
                 </motion.div>
@@ -940,26 +589,17 @@ function AppContent() {
       <footer className="bg-white border-t border-gray-100 p-8 mt-12">
         <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <ShieldCheck className="w-5 h-5 text-gray-600" />
+            <ShieldCheck className="w-5 h-5 text-indigo-600" />
             <span className="text-sm font-semibold text-gray-900">CCM Template Analyst v1.0</span>
           </div>
           <div className="flex items-center gap-8 text-sm text-gray-500">
-            <a href="#" className="hover:text-gray-600 transition-colors">Documentation</a>
-            <a href="#" className="hover:text-gray-600 transition-colors">Security Policy</a>
-            <a href="#" className="hover:text-gray-600 transition-colors">Support</a>
+            <a href="#" className="hover:text-indigo-600 transition-colors">Documentation</a>
+            <a href="#" className="hover:text-indigo-600 transition-colors">Security Policy</a>
+            <a href="#" className="hover:text-indigo-600 transition-colors">Support</a>
           </div>
           <p className="text-xs text-gray-400">© 2026 Quadient Inspire CCM Security. All rights reserved.</p>
         </div>
       </footer>
-
-      {isDictionaryManagerOpen && (
-        <DictionaryManager 
-          dictionary={sensitiveDictionary}
-          onSave={saveDictionary}
-          onClose={() => setIsDictionaryManagerOpen(false)}
-          onReset={resetDictionary}
-        />
-      )}
     </div>
   );
 }

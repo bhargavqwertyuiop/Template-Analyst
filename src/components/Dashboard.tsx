@@ -62,16 +62,16 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
     {
       label: 'Total Templates',
       value: stats.totalTemplates,
-      icon: <Layout className="w-6 h-6 text-gray-600" />,
-      bg: 'bg-gray-50',
-      border: 'border-gray-100'
+      icon: <Layout className="w-6 h-6 text-blue-600" />,
+      bg: 'bg-blue-50',
+      border: 'border-blue-100'
     },
     {
       label: 'Total Variables',
       value: stats.totalVariables,
-      icon: <Database className="w-6 h-6 text-slate-600" />,
-      bg: 'bg-slate-50',
-      border: 'border-slate-100'
+      icon: <Database className="w-6 h-6 text-indigo-600" />,
+      bg: 'bg-indigo-50',
+      border: 'border-indigo-100'
     },
     {
       label: 'Sensitive Variables Count',
@@ -92,10 +92,7 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       {cards.map((card, i) => (
-        <div 
-          key={i} 
-          className={`p-6 rounded-2xl border ${card.bg} ${card.border} shadow-sm transition-all duration-200`}
-        >
+        <div key={i} className={`p-6 rounded-2xl border ${card.bg} ${card.border} shadow-sm`}>
           <div className="flex items-center justify-between mb-4">
             <div className="p-2 bg-white rounded-lg shadow-sm">
               {card.icon}
@@ -114,10 +111,7 @@ interface ChartsProps {
   templateSummaries: TemplateSummary[];
 }
 
-export function Charts({ 
-  stats, 
-  templateSummaries
-}: ChartsProps) {
+export function Charts({ stats, templateSummaries }: ChartsProps) {
   const pieData = Object.entries(stats.categoryDistribution)
     .filter(([name, value]) => name !== 'NONE' && value > 0)
     .map(([name, value]) => ({
@@ -167,11 +161,7 @@ export function Charts({
                 dataKey="value"
               >
                 {pieData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={CATEGORY_COLORS[entry.name as Category]} 
-                    className="outline-none"
-                  />
+                  <Cell key={`cell-${index}`} fill={CATEGORY_COLORS[entry.name as Category]} />
                 ))}
               </Pie>
               <Tooltip 
@@ -198,11 +188,7 @@ export function Charts({
                 dataKey="value"
               >
                 {riskData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={RISK_COLORS[entry.name as RiskLevel]} 
-                    className="outline-none"
-                  />
+                  <Cell key={`cell-${index}`} fill={RISK_COLORS[entry.name as RiskLevel]} />
                 ))}
               </Pie>
               <Tooltip 
@@ -229,11 +215,7 @@ export function Charts({
                 dataKey="value"
               >
                 {templateTypeData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={TEMPLATE_TYPE_COLORS[entry.type as TemplateType]} 
-                    className="outline-none"
-                  />
+                  <Cell key={`cell-${index}`} fill={TEMPLATE_TYPE_COLORS[entry.type as TemplateType]} />
                 ))}
               </Pie>
               <Tooltip 
@@ -266,12 +248,7 @@ export function Charts({
                 formatter={(value) => [value, 'Sensitive Variables']}
                 labelFormatter={(label) => (Array.isArray(label) ? label[0] : label)}
               />
-              <Bar 
-                dataKey="sensitive" 
-                fill="#ef4444" 
-                radius={[0, 4, 4, 0]} 
-                barSize={15} 
-              />
+              <Bar dataKey="sensitive" fill="#ef4444" radius={[0, 4, 4, 0]} barSize={15} />
             </BarChart>
           </ResponsiveContainer>
         </div>
