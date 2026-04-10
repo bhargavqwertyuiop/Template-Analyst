@@ -26,6 +26,7 @@ import {
   calculateStats, DEFAULT_SENSITIVE_DICTIONARY, Dictionary, parseDictionaryCSV
 } from './lib/analyzer';
 import { FileUpload } from './components/FileUpload';
+import { InstructionVideo } from './components/InstructionVideo';
 import { SummaryCards, Charts } from './components/Dashboard';
 import { TemplateList, VariableTable } from './components/TemplateAnalysis';
 import { DictionaryManager } from './components/DictionaryManager';
@@ -538,6 +539,8 @@ function AppContent() {
                 Upload your Quadient Inspire analysis data to instantly detect PII, financial info, and security risks across your workflows.
               </p>
             </div>
+            
+            <InstructionVideo />
             
             <div className="bg-white rounded-3xl shadow-2xl shadow-gray-100/50 border border-gray-100 overflow-hidden">
               <FileUpload onDataLoaded={handleDataLoaded} />
