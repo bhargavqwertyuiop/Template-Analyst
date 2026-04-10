@@ -107,9 +107,7 @@ function AppContent() {
     async function testConnection() {
       try {
         await getDocFromServer(doc(db, 'test', 'connection'));
-        console.log("Firestore connection successful.");
       } catch (error) {
-        console.error("Firebase connection test failed:", error);
         if(error instanceof Error && (error.message.includes('the client is offline') || error.message.includes('permission-denied'))) {
           console.error("Please check your Firebase configuration and ensure Firestore is enabled with correct rules.");
         }

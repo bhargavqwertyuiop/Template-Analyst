@@ -6,7 +6,7 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   plugins: [react(), tailwindcss()],
 
-  // 🔥 IMPORTANT: Fix for GitHub Pages
+  // Base path for GitHub Pages deployment
   base: '/Template-Analyst/',
 
   resolve: {
@@ -16,7 +16,6 @@ export default defineConfig({
   },
 
   server: {
-    // Keep your existing logic
     hmr: process.env.DISABLE_HMR !== 'true',
   },
 });
