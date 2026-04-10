@@ -133,11 +133,27 @@ function AppContent() {
     setHistoryLoading(true);
     
     const unsubscribe = onSnapshot(q, (querySnapshot: any) => {
-      const fetchedHistory = querySnapshot.docs.map((doc: any) => ({
-        id: doc.id,
-        ...doc.data(),
-        data: JSON.parse(doc.data().data)
-      })) as any[];
+      const fetchedHistory = querySnapshot.docs.map((doc: any) => {
+        const docData = doc.data();
+        return {
+          id: doc.id,
+          userId: docData.userId,
+          timestamp: docData.timestamp,
+          fileName: docData.fileName,
+          stats: {
+            totalTemplates: docData.totalTemplates,
+            sensitiveVariablesCount: docData.sensitiveCount,
+            highRiskCount: docData.highRiskCount,
+            // Add default values for other stats fields that might be needed
+            totalVariables: 0,
+            categoryDistribution: {},
+            typeDistribution: {},
+            riskDistribution: {},
+            templateTypeDistribution: {}
+          },
+          data: JSON.parse(docData.data)
+        };
+      }) as any[];
       
       setHistory(fetchedHistory);
       localStorage.setItem('recent_analyses', JSON.stringify(fetchedHistory));
@@ -166,7 +182,9 @@ function AppContent() {
         userId: user.uid,
         timestamp: new Date().toISOString(),
         fileName,
-        stats: processed.stats,
+        totalTemplates: processed.stats.totalTemplates,
+        sensitiveCount: processed.stats.sensitiveVariablesCount,
+        highRiskCount: processed.stats.highRiskCount,
         data: JSON.stringify(data)
       };
       const docRef = await addDoc(collection(db, path), newEntry);
