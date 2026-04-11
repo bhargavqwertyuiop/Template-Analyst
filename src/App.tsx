@@ -4,9 +4,9 @@
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { 
-  ShieldCheck, Search, Filter, RefreshCcw, 
-  Download, AlertCircle, LayoutDashboard, 
+import {
+  ShieldCheck, Search, Filter, RefreshCcw,
+  Download, AlertCircle, LayoutDashboard,
   Database, FileText, Settings, HelpCircle,
   ChevronRight, X, FileDown, Loader2, Upload,
   LogOut, User as UserIcon
@@ -14,14 +14,14 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import jsPDF from 'jspdf';
 import Papa from 'papaparse';
-import { 
-  collection, query, where, orderBy, limit, 
+import {
+  collection, query, where, orderBy, limit,
   getDocs, addDoc, deleteDoc, doc, writeBatch,
   getDocFromServer, onSnapshot
 } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
-import { 
-  processRawData, RawTemplateData, TemplateVariable, 
+import {
+  processRawData, RawTemplateData, TemplateVariable,
   TemplateSummary, DashboardStats, Category, RiskLevel, TemplateType,
   calculateStats, DEFAULT_SENSITIVE_DICTIONARY, Dictionary, parseDictionaryCSV
 } from './lib/analyzer';
@@ -77,6 +77,24 @@ function AppContent() {
     stats: DashboardStats;
   } | null>(null);
 
+  const normalizeHistoryEntry = (entry: any) => {
+    const stats = entry?.stats || {};
+    return {
+      ...entry,
+      stats: {
+        totalTemplates: Number(stats.totalTemplates ?? 0),
+        totalVariables: Number(stats.totalVariables ?? 0),
+        sensitiveVariablesCount: Number(stats.sensitiveVariablesCount ?? stats.sensitiveCount ?? 0),
+        highRiskCount: Number(stats.highRiskCount ?? 0),
+        categoryDistribution: stats.categoryDistribution ?? { EMAIL: 0, PII: 0, FINANCIAL: 0, SECURITY: 0, CONTACT: 0, NONE: 0 },
+        typeDistribution: stats.typeDistribution ?? { System: 0, Global: 0, Sensitive: 0, Other: 0 },
+        riskDistribution: stats.riskDistribution ?? { HIGH: 0, MEDIUM: 0, LOW: 0, SAFE: 0 },
+        templateTypeDistribution: stats.templateTypeDistribution ?? { BASE_TEMPLATE: 0, BLOCK: 0, SNIPPET: 0, TEMPLATE: 0 }
+      },
+      data: entry?.data ?? []
+    };
+  };
+
   const [searchQuery, setSearchQuery] = useState('');
   const [sensitiveDictionary, setSensitiveDictionary] = useState<Dictionary>(() => {
     const saved = localStorage.getItem('sensitive_dictionary');
@@ -97,7 +115,14 @@ function AppContent() {
     data: RawTemplateData[];
   }>>(() => {
     const cached = localStorage.getItem('recent_analyses');
-    return cached ? JSON.parse(cached) : [];
+    if (!cached) return [];
+
+    try {
+      const parsed = JSON.parse(cached);
+      return Array.isArray(parsed) ? parsed.map(normalizeHistoryEntry) : [];
+    } catch {
+      return [];
+    }
   });
   const [historyLoading, setHistoryLoading] = useState(false);
   const [isInitialHistoryLoad, setIsInitialHistoryLoad] = useState(true);
@@ -108,7 +133,7 @@ function AppContent() {
       try {
         await getDocFromServer(doc(db, 'test', 'connection'));
       } catch (error) {
-        if(error instanceof Error && (error.message.includes('the client is offline') || error.message.includes('permission-denied'))) {
+        if (error instanceof Error && (error.message.includes('the client is offline') || error.message.includes('permission-denied'))) {
           console.error("Please check your Firebase configuration and ensure Firestore is enabled with correct rules.");
         }
       }
@@ -131,11 +156,11 @@ function AppContent() {
     );
 
     setHistoryLoading(true);
-    
+
     const unsubscribe = onSnapshot(q, (querySnapshot: any) => {
       const fetchedHistory = querySnapshot.docs.map((doc: any) => {
         const docData = doc.data();
-        return {
+        return normalizeHistoryEntry({
           id: doc.id,
           userId: docData.userId,
           timestamp: docData.timestamp,
@@ -152,9 +177,9 @@ function AppContent() {
             templateTypeDistribution: {}
           },
           data: JSON.parse(docData.data)
-        };
+        });
       }) as any[];
-      
+
       setHistory(fetchedHistory);
       localStorage.setItem('recent_analyses', JSON.stringify(fetchedHistory));
       setHistoryLoading(false);
@@ -188,7 +213,7 @@ function AppContent() {
         data: JSON.stringify(data)
       };
       const docRef = await addDoc(collection(db, path), newEntry);
-      
+
       // Update local history state
       const historyEntry = {
         id: docRef.id,
@@ -255,7 +280,7 @@ function AppContent() {
   const saveDictionary = (newDictionary: Dictionary) => {
     setSensitiveDictionary(newDictionary);
     localStorage.setItem('sensitive_dictionary', JSON.stringify(newDictionary));
-    
+
     // Re-process data if it exists
     if (rawData) {
       const processed = processRawData(rawData, newDictionary);
@@ -325,10 +350,10 @@ function AppContent() {
       alert('No data available for export');
       return;
     }
-    
+
     const headers = ['Template', 'Module', 'Object Path', 'Variable', 'Type', 'Categories', 'Flow', 'Count'];
     const filteredVariables = filteredSummaries.flatMap(s => s.variables);
-    
+
     const escapeCSV = (val: any) => {
       const stringVal = String(val);
       if (stringVal.includes(',') || stringVal.includes('"') || stringVal.includes('\n')) {
@@ -427,13 +452,13 @@ function AppContent() {
       Object.entries(filteredStats.templateTypeDistribution).forEach(([name, value]) => {
         const label = name === 'BASE_TEMPLATE' ? 'Base Template (Master)' :
           name === 'BLOCK' ? 'Block' :
-          name === 'SNIPPET' ? 'Snippet' : 'Template';
+            name === 'SNIPPET' ? 'Snippet' : 'Template';
         addLine(`• ${label}: ${value}`);
       });
       addLine('');
 
       addSectionTitle('Templates by Type');
-      
+
       const templatesByType: Record<string, TemplateSummary[]> = {};
       filteredSummaries.forEach(template => {
         if (!templatesByType[template.templateType]) {
@@ -443,26 +468,26 @@ function AppContent() {
       });
 
       const typeOrder = ['BASE_TEMPLATE', 'BLOCK', 'SNIPPET', 'TEMPLATE'];
-      
+
       typeOrder.forEach(type => {
         const templates = templatesByType[type] || [];
         if (templates.length === 0) return;
-        
+
         const typeLabel = type === 'BASE_TEMPLATE' ? 'Base Template (Master)' :
           type === 'BLOCK' ? 'Block' :
-          type === 'SNIPPET' ? 'Snippet' : 'Template';
-        
+            type === 'SNIPPET' ? 'Snippet' : 'Template';
+
         addLine(`${typeLabel} (${templates.length} templates)`);
-        
+
         templates.forEach((template) => {
           addLine(`  • ${template.templateName}`);
-          
+
           template.variables.forEach((variable, varIndex) => {
             const flowInfo = variable.flow ? ` [Flow: ${variable.flow}]` : '';
             const categoryInfo = variable.categories.length > 0 ? ` [${variable.categories.join(', ')}]` : '';
             addLine(`    ${varIndex + 1}. ${variable.variableName}${flowInfo}${categoryInfo}`);
           });
-          
+
           addLine('');
         });
       });
@@ -527,8 +552,8 @@ function AppContent() {
               </div>
               <div className="flex items-center gap-4">
                 <p className="text-xs font-bold text-gray-900">{user.email}</p>
-                <button 
-                  onClick={handleLogout} 
+                <button
+                  onClick={handleLogout}
                   className="px-3 py-1 text-[10px] font-bold text-white bg-red-500 hover:bg-red-600 rounded-lg uppercase tracking-wider transition-colors"
                 >
                   Sign Out
@@ -542,7 +567,7 @@ function AppContent() {
         </header>
 
         <main className="flex-1 flex items-center justify-center p-8">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="w-full max-w-4xl"
@@ -555,9 +580,9 @@ function AppContent() {
                 Upload your Quadient Inspire analysis data to instantly detect PII, financial info, and security risks across your workflows.
               </p>
             </div>
-            
+
             <InstructionVideo />
-            
+
             <div className="bg-white rounded-3xl shadow-2xl shadow-gray-100/50 border border-gray-100 overflow-hidden">
               <FileUpload onDataLoaded={handleDataLoaded} />
             </div>
@@ -570,7 +595,7 @@ function AppContent() {
                     <button onClick={clearHistory} className="text-xs font-bold text-gray-400 hover:text-red-500 uppercase tracking-wider">Clear History</button>
                   )}
                 </div>
-                
+
                 {historyLoading && isInitialHistoryLoad ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {[1, 2, 3, 4].map(i => (
@@ -596,7 +621,7 @@ function AppContent() {
                 ) : history.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
                     {history.map(entry => (
-                      <button 
+                      <button
                         key={entry.id}
                         onClick={() => loadFromHistory(entry)}
                         className="p-5 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-all text-left group"
@@ -616,15 +641,15 @@ function AppContent() {
                         <div className="grid grid-cols-3 gap-2">
                           <div className="text-center p-2 bg-gray-50 rounded-xl">
                             <p className="text-[9px] font-bold text-gray-400 uppercase">Templates</p>
-                            <p className="text-sm font-bold text-gray-900">{entry.stats.totalTemplates}</p>
+                            <p className="text-sm font-bold text-gray-900">{entry.stats?.totalTemplates ?? 0}</p>
                           </div>
                           <div className="text-center p-2 bg-gray-50 rounded-xl">
                             <p className="text-[9px] font-bold text-gray-400 uppercase">Sensitive</p>
-                            <p className="text-sm font-bold text-red-600">{entry.stats.sensitiveVariablesCount}</p>
+                            <p className="text-sm font-bold text-red-600">{entry.stats?.sensitiveVariablesCount ?? 0}</p>
                           </div>
                           <div className="text-center p-2 bg-gray-50 rounded-xl">
                             <p className="text-[9px] font-bold text-gray-400 uppercase">High Risk</p>
-                            <p className="text-sm font-bold text-amber-600">{entry.stats.highRiskCount}</p>
+                            <p className="text-sm font-bold text-amber-600">{entry.stats?.highRiskCount ?? 0}</p>
                           </div>
                         </div>
                       </button>
@@ -685,15 +710,15 @@ function AppContent() {
         <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
           <div className="relative group w-full sm:w-64 lg:w-96">
             <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 group-focus-within:text-gray-600 transition-colors" />
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder="Search templates or variables..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-500/20 focus:border-gray-500 transition-all w-full"
             />
           </div>
-          
+
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <label className="flex items-center gap-2 px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-gray-50 transition-colors bg-white rounded-xl cursor-pointer border border-gray-200 hover:border-gray-300 h-10">
@@ -701,7 +726,7 @@ function AppContent() {
                 Upload CSV
                 <input type="file" accept=".csv" className="hidden" onChange={handleDictionaryUpload} />
               </label>
-              <button 
+              <button
                 onClick={() => setIsDictionaryManagerOpen(true)}
                 className="flex items-center gap-2 px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-gray-50 transition-colors bg-white rounded-xl border border-gray-200 hover:border-gray-300 h-10"
               >
@@ -714,8 +739,8 @@ function AppContent() {
                 {Object.values(sensitiveDictionary).flat().length} Active
               </span>
               {localStorage.getItem('sensitive_dictionary') && (
-                <button 
-                  onClick={resetDictionary} 
+                <button
+                  onClick={resetDictionary}
                   className="px-2 py-1 text-[10px] text-red-500 hover:bg-red-50 rounded-lg font-bold uppercase tracking-wider transition-colors"
                 >
                   Reset
@@ -725,21 +750,21 @@ function AppContent() {
           </div>
 
           <div className="flex items-center gap-2">
-            <button 
+            <button
               onClick={() => { resetData(); setSelectedTemplate(null); }}
               className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
               title="Reset View"
             >
               <RefreshCcw className="w-4 h-4" />
             </button>
-            <button 
+            <button
               onClick={exportToCSV}
               className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
               title="Export CSV"
             >
               <Download className="w-4 h-4" />
             </button>
-            <button 
+            <button
               onClick={exportToPDF}
               disabled={isExportingPDF}
               className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-gray-800 hover:bg-gray-900 transition-all rounded-xl shadow-lg shadow-gray-200 disabled:opacity-50 disabled:cursor-not-allowed h-10"
@@ -759,8 +784,8 @@ function AppContent() {
             </div>
             <div className="flex items-center gap-3">
               <p className="text-[10px] font-bold text-gray-900 truncate max-w-[80px]">{user.email}</p>
-              <button 
-                onClick={handleLogout} 
+              <button
+                onClick={handleLogout}
                 className="px-2 py-0.5 text-[9px] font-bold text-white bg-red-500 hover:bg-red-600 rounded-md uppercase tracking-wider transition-colors"
               >
                 Sign Out
@@ -772,11 +797,11 @@ function AppContent() {
 
       <main className="flex-1 p-8 max-w-[1600px] mx-auto w-full">
         {filteredStats && (
-          <SummaryCards 
-            stats={filteredStats} 
+          <SummaryCards
+            stats={filteredStats}
           />
         )}
-        
+
         <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
           <div className="flex items-center gap-4 w-full md:w-auto">
             <div className="flex items-center gap-2">
@@ -787,14 +812,14 @@ function AppContent() {
           <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
             <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2 flex-1 md:flex-none justify-between">
               <span className="text-sm font-medium text-gray-600">Sensitive Only</span>
-              <button 
+              <button
                 onClick={toggleSensitiveOnly}
                 className={`w-10 h-5 rounded-full transition-colors relative ${showSensitiveOnly ? 'bg-gray-800' : 'bg-gray-200'}`}
               >
                 <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-transform ${showSensitiveOnly ? 'translate-x-6' : 'translate-x-1'}`} />
               </button>
             </div>
-            <select 
+            <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value as Category | 'ALL')}
               className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500/20 flex-1 md:flex-none"
@@ -806,7 +831,7 @@ function AppContent() {
               <option value="SECURITY">Security</option>
               <option value="CONTACT">Contact</option>
             </select>
-            <select 
+            <select
               value={selectedRisk}
               onChange={(e) => setSelectedRisk(e.target.value as RiskLevel | 'ALL')}
               className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500/20 flex-1 md:flex-none"
@@ -815,7 +840,7 @@ function AppContent() {
                 <option key={option.value} value={option.value}>{option.label}</option>
               ))}
             </select>
-            <select 
+            <select
               value={selectedTemplateType}
               onChange={(e) => setSelectedTemplateType(e.target.value as TemplateType | 'ALL')}
               className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500/20 flex-1 md:flex-none"
@@ -830,16 +855,16 @@ function AppContent() {
         </div>
 
         {filteredStats && (
-          <Charts 
-            stats={filteredStats} 
-            templateSummaries={filteredSummaries} 
+          <Charts
+            stats={filteredStats}
+            templateSummaries={filteredSummaries}
           />
         )}
 
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
           <div className="xl:col-span-5">
-            <TemplateList 
-              risks={filteredSummaries} 
+            <TemplateList
+              risks={filteredSummaries}
               onSelectTemplate={setSelectedTemplate}
               selectedTemplate={selectedTemplate}
               searchQuery={searchQuery}
@@ -863,7 +888,7 @@ function AppContent() {
                           <h3 className="text-2xl font-bold text-gray-900 mb-2">{selectedTemplate.templateName}</h3>
                           <p className="text-sm text-gray-600">{selectedTemplateRiskNote}</p>
                         </div>
-                        <button 
+                        <button
                           onClick={() => setSelectedTemplate(null)}
                           className="p-2 hover:bg-white rounded-lg transition-colors"
                         >
@@ -927,11 +952,11 @@ function AppContent() {
                         )
                       </p>
                     </div>
-                    <VariableTable 
-                      variables={showSensitiveOnly 
-                        ? selectedTemplate.variables.filter(v => v.categories.length > 0) 
+                    <VariableTable
+                      variables={showSensitiveOnly
+                        ? selectedTemplate.variables.filter(v => v.categories.length > 0)
                         : selectedTemplate.variables
-                      } 
+                      }
                       searchQuery={searchQuery}
                     />
                   </div>
@@ -972,7 +997,7 @@ function AppContent() {
       </footer>
 
       {isDictionaryManagerOpen && (
-        <DictionaryManager 
+        <DictionaryManager
           dictionary={sensitiveDictionary}
           onSave={saveDictionary}
           onClose={() => setIsDictionaryManagerOpen(false)}

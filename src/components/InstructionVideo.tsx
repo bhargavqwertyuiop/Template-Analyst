@@ -7,11 +7,12 @@ interface InstructionVideoProps {
 }
 
 export function InstructionVideo({
-  videoId = "YOUR_FILE_ID_HERE", // Replace with actual Google Drive file ID
+  videoId = "1_xp5fRwk5DVU__iVj4q3rWAQgs8CTarj",
   title = "How to Use This Application",
   description = "Watch this quick tutorial to learn how to prepare your CSV input files and get the most out of the Template Analyst application."
 }: InstructionVideoProps) {
-  const videoUrl = `https://drive.google.com/file/d/${videoId}/preview`;
+  const fileId = videoId.split('/')[0];
+  const videoUrl = `https://drive.google.com/file/d/${fileId}/preview`;
 
   return (
     <div className="max-w-4xl mx-auto p-6">
