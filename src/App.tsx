@@ -7,7 +7,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import {
   ShieldCheck, Search, Filter, RefreshCcw,
   Download, AlertCircle, LayoutDashboard,
-  Database, FileText, Settings, HelpCircle,
+  Database, FileText, Settings,
   ChevronRight, X, FileDown, Loader2, Upload,
   LogOut, User as UserIcon
 } from 'lucide-react';
@@ -108,6 +108,7 @@ function AppContent() {
   const [showSensitiveOnly, setShowSensitiveOnly] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [isDictionaryManagerOpen, setIsDictionaryManagerOpen] = useState(false);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [history, setHistory] = useState<Array<{
     id: string;
     timestamp: string;
@@ -574,9 +575,6 @@ function AppContent() {
                 </button>
               </div>
             </div>
-            <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-              <HelpCircle className="w-5 h-5" />
-            </button>
           </div>
         </header>
 
@@ -1005,9 +1003,8 @@ function AppContent() {
             <span className="text-sm font-semibold text-gray-900">CCM Template Analyst v1.0</span>
           </div>
           <div className="flex items-center gap-8 text-sm text-gray-500">
-            <a href="#" className="hover:text-gray-600 transition-colors">Documentation</a>
-            <a href="#" className="hover:text-gray-600 transition-colors">Security Policy</a>
-            <a href="#" className="hover:text-gray-600 transition-colors">Support</a>
+            <a href="https://github.com/bhargavqwertyuiop/Template-Analyst" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 transition-colors">Documentation</a>
+            <button onClick={() => setIsAboutOpen(true)} className="hover:text-gray-600 transition-colors">About</button>
           </div>
           <p className="text-xs text-gray-400">© 2026 Quadient Inspire CCM Security. All rights reserved.</p>
         </div>
@@ -1020,6 +1017,57 @@ function AppContent() {
           onClose={() => setIsDictionaryManagerOpen(false)}
           onReset={resetDictionary}
         />
+      )}
+
+      {isAboutOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden">
+            <div className="p-6 border-b border-gray-100">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">About Template Analyst</h2>
+                <button onClick={() => setIsAboutOpen(false)} className="p-2 hover:bg-gray-50 rounded-xl transition-colors">
+                  <X className="w-5 h-5 text-gray-400" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <div className="text-center mb-6">
+                <ShieldCheck className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">CCM Template Analyst v1.0</h3>
+                <p className="text-sm text-gray-600">Secure your Quadient Inspire templates with intelligent risk detection</p>
+              </div>
+
+              <div className="border-t border-gray-100 pt-6">
+                <h4 className="text-sm font-semibold text-gray-900 mb-4">Development Team</h4>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-sm font-medium text-gray-900">Pratiksha</span>
+                    <span className="text-xs text-gray-500">pratiksha@example.com</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-sm font-medium text-gray-900">Subhrajyoti</span>
+                    <span className="text-xs text-gray-500">subhrajyoti@example.com</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-sm font-medium text-gray-900">Vinothh</span>
+                    <span className="text-xs text-gray-500">vinothh@example.com</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-sm font-medium text-gray-900">Bhargav</span>
+                    <span className="text-xs text-gray-500">bhargav@example.com</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-gray-100 pt-6 mt-6">
+                <p className="text-xs text-gray-400 text-center">
+                  © 2026 Quadient Inspire CCM Security. All rights reserved.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
