@@ -4,11 +4,11 @@
  */
 
 import React from 'react';
-import { 
-  AlertCircle, AlertTriangle, CheckCircle, 
+import {
+  AlertCircle, AlertTriangle, CheckCircle,
   ChevronRight
 } from 'lucide-react';
-import { 
+import {
   TemplateSummary, TemplateVariable, VariableType, RiskLevel
 } from '../lib/analyzer';
 import { CATEGORY_COLORS, CATEGORY_ICONS, TYPE_COLORS } from './Dashboard';
@@ -113,13 +113,10 @@ export function TemplateList({ risks, onSelectTemplate, selectedTemplate, search
                     <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full ${config.bg} ${config.color}`}>
                       {config.label}
                     </span>
-                    <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full bg-gray-900 text-white`}>
-                      Score: {risk.riskScore}
-                    </span>
                     <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700`}>
                       {risk.templateType === 'BASE_TEMPLATE' ? 'Base Template (Master)' :
-                       risk.templateType === 'BLOCK' ? 'Block' :
-                       risk.templateType === 'SNIPPET' ? 'Snippet' : 'Template'}
+                        risk.templateType === 'BLOCK' ? 'Block' :
+                          risk.templateType === 'SNIPPET' ? 'Snippet' : 'Template'}
                     </span>
                     <span className="text-xs text-gray-400">
                       {risk.sensitiveCount} / {risk.totalCount} sensitive
@@ -130,8 +127,8 @@ export function TemplateList({ risks, onSelectTemplate, selectedTemplate, search
               <div className="flex items-center gap-4">
                 <div className="flex -space-x-2">
                   {Array.from(risk.categories).map((cat, i) => (
-                    <div 
-                      key={i} 
+                    <div
+                      key={i}
                       className="w-8 h-8 rounded-full bg-white border-2 border-white shadow-sm flex items-center justify-center"
                       style={{ color: CATEGORY_COLORS[cat] }}
                       title={cat}
@@ -194,7 +191,7 @@ export function VariableTable({ variables, searchQuery }: VariableTableProps) {
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <span 
+                  <span
                     className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full"
                     style={{ backgroundColor: `${TYPE_COLORS[v.type]}20`, color: TYPE_COLORS[v.type] }}
                   >
@@ -204,7 +201,7 @@ export function VariableTable({ variables, searchQuery }: VariableTableProps) {
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-1 flex-wrap">
                     {v.categories.length > 0 ? v.categories.map((cat, idx) => (
-                      <div 
+                      <div
                         key={idx}
                         className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium"
                         style={{ backgroundColor: `${CATEGORY_COLORS[cat]}15`, color: CATEGORY_COLORS[cat] }}
