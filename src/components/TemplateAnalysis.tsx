@@ -116,7 +116,8 @@ export function TemplateList({ risks, onSelectTemplate, selectedTemplate, search
                     <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700`}>
                       {risk.templateType === 'BASE_TEMPLATE' ? 'Base Template (Master)' :
                         risk.templateType === 'BLOCK' ? 'Block' :
-                          risk.templateType === 'SNIPPET' ? 'Snippet' : 'Template'}
+                          risk.templateType === 'SNIPPET' ? 'Snippet' :
+                            risk.templateType === 'TEMPLATE' ? 'Template' : 'Others'}
                     </span>
                     <span className="text-xs text-gray-400">
                       {risk.sensitiveCount} / {risk.totalCount} sensitive

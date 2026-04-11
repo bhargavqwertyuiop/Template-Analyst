@@ -4,13 +4,13 @@
  */
 
 import React from 'react';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
 } from 'recharts';
-import { 
-  Layout, ShieldAlert, Database, AlertTriangle, 
-  Mail, User, CreditCard, Lock, Phone 
+import {
+  Layout, ShieldAlert, Database, AlertTriangle,
+  Mail, User, CreditCard, Lock, Phone
 } from 'lucide-react';
 import { DashboardStats, Category, TemplateSummary, RiskLevel, VariableType, TemplateType } from '../lib/analyzer';
 
@@ -34,7 +34,8 @@ const TEMPLATE_TYPE_COLORS: Record<TemplateType, string> = {
   BASE_TEMPLATE: '#a78bfa', // violet-400
   BLOCK: '#60a5fa', // blue-400
   SNIPPET: '#34d399', // emerald-400
-  TEMPLATE: '#fbbf24' // amber-400
+  TEMPLATE: '#fbbf24', // amber-400
+  OTHER: '#94a3b8' // slate-400
 };
 
 const TYPE_COLORS: Record<VariableType, string> = {
@@ -92,8 +93,8 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       {cards.map((card, i) => (
-        <div 
-          key={i} 
+        <div
+          key={i}
           className={`p-6 rounded-2xl border ${card.bg} ${card.border} shadow-sm transition-all duration-200`}
         >
           <div className="flex items-center justify-between mb-4">
@@ -114,8 +115,8 @@ interface ChartsProps {
   templateSummaries: TemplateSummary[];
 }
 
-export function Charts({ 
-  stats, 
+export function Charts({
+  stats,
   templateSummaries
 }: ChartsProps) {
   const pieData = Object.entries(stats.categoryDistribution)
@@ -134,8 +135,9 @@ export function Charts({
     .filter(([name, value]) => value > 0)
     .map(([name, value]) => ({
       name: name === 'BASE_TEMPLATE' ? 'Base Template (Master)' :
-            name === 'BLOCK' ? 'Block' :
-            name === 'SNIPPET' ? 'Snippet' : 'Template',
+        name === 'BLOCK' ? 'Block' :
+          name === 'SNIPPET' ? 'Snippet' :
+            name === 'TEMPLATE' ? 'Template' : 'Others',
       value,
       type: name
     }));
@@ -167,17 +169,17 @@ export function Charts({
                 dataKey="value"
               >
                 {pieData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={CATEGORY_COLORS[entry.name as Category]} 
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={CATEGORY_COLORS[entry.name as Category]}
                     className="outline-none"
                   />
                 ))}
               </Pie>
-              <Tooltip 
+              <Tooltip
                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
               />
-              <Legend verticalAlign="bottom" height={36}/>
+              <Legend verticalAlign="bottom" height={36} />
             </PieChart>
           </ResponsiveContainer>
         </div>
@@ -198,17 +200,17 @@ export function Charts({
                 dataKey="value"
               >
                 {riskData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={RISK_COLORS[entry.name as RiskLevel]} 
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={RISK_COLORS[entry.name as RiskLevel]}
                     className="outline-none"
                   />
                 ))}
               </Pie>
-              <Tooltip 
+              <Tooltip
                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
               />
-              <Legend verticalAlign="bottom" height={36}/>
+              <Legend verticalAlign="bottom" height={36} />
             </PieChart>
           </ResponsiveContainer>
         </div>
@@ -229,17 +231,17 @@ export function Charts({
                 dataKey="value"
               >
                 {templateTypeData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={TEMPLATE_TYPE_COLORS[entry.type as TemplateType]} 
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={TEMPLATE_TYPE_COLORS[entry.type as TemplateType]}
                     className="outline-none"
                   />
                 ))}
               </Pie>
-              <Tooltip 
+              <Tooltip
                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
               />
-              <Legend verticalAlign="bottom" height={36}/>
+              <Legend verticalAlign="bottom" height={36} />
             </PieChart>
           </ResponsiveContainer>
         </div>
@@ -252,25 +254,25 @@ export function Charts({
             <BarChart data={barData} layout="vertical" margin={{ left: 20, right: 20 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
               <XAxis type="number" hide />
-              <YAxis 
-                dataKey="name" 
-                type="category" 
-                axisLine={false} 
-                tickLine={false} 
+              <YAxis
+                dataKey="name"
+                type="category"
+                axisLine={false}
+                tickLine={false}
                 tick={{ fontSize: 11, fill: '#64748b' }}
                 width={100}
               />
-              <Tooltip 
+              <Tooltip
                 cursor={{ fill: '#f8fafc' }}
                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                 formatter={(value) => [value, 'Sensitive Variables']}
                 labelFormatter={(label) => (Array.isArray(label) ? label[0] : label)}
               />
-              <Bar 
-                dataKey="sensitive" 
-                fill="#ef4444" 
-                radius={[0, 4, 4, 0]} 
-                barSize={15} 
+              <Bar
+                dataKey="sensitive"
+                fill="#ef4444"
+                radius={[0, 4, 4, 0]}
+                barSize={15}
               />
             </BarChart>
           </ResponsiveContainer>

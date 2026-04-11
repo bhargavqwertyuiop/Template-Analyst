@@ -47,7 +47,8 @@ const TEMPLATE_TYPE_LABELS: Record<TemplateType, string> = {
   BASE_TEMPLATE: 'Base Template (Master)',
   BLOCK: 'Block',
   SNIPPET: 'Snippet',
-  TEMPLATE: 'Template'
+  TEMPLATE: 'Template',
+  OTHER: 'Others'
 };
 
 const CATEGORY_LABELS: Record<Category, string> = {
@@ -89,7 +90,7 @@ function AppContent() {
         categoryDistribution: stats.categoryDistribution ?? { EMAIL: 0, PII: 0, FINANCIAL: 0, SECURITY: 0, CONTACT: 0, NONE: 0 },
         typeDistribution: stats.typeDistribution ?? { System: 0, Global: 0, Sensitive: 0, Other: 0 },
         riskDistribution: stats.riskDistribution ?? { HIGH: 0, MEDIUM: 0, LOW: 0, SAFE: 0 },
-        templateTypeDistribution: stats.templateTypeDistribution ?? { BASE_TEMPLATE: 0, BLOCK: 0, SNIPPET: 0, TEMPLATE: 0 }
+        templateTypeDistribution: stats.templateTypeDistribution ?? { BASE_TEMPLATE: 0, BLOCK: 0, SNIPPET: 0, TEMPLATE: 0, OTHER: 0 }
       },
       data: entry?.data ?? []
     };
@@ -217,7 +218,18 @@ function AppContent() {
       // Update local history state
       const historyEntry = {
         id: docRef.id,
-        ...newEntry,
+        timestamp: newEntry.timestamp,
+        fileName: newEntry.fileName,
+        stats: {
+          totalTemplates: newEntry.totalTemplates,
+          totalVariables: processed.stats.totalVariables,
+          sensitiveVariablesCount: newEntry.sensitiveCount,
+          highRiskCount: newEntry.highRiskCount,
+          categoryDistribution: processed.stats.categoryDistribution,
+          typeDistribution: processed.stats.typeDistribution,
+          riskDistribution: processed.stats.riskDistribution,
+          templateTypeDistribution: processed.stats.templateTypeDistribution
+        },
         data
       };
       setHistory(prev => [historyEntry, ...prev]);
@@ -405,7 +417,7 @@ function AppContent() {
 
       const addLine = (text: string, options: { align?: 'left' | 'center' | 'right' } = {}) => {
         const lines = pdf.splitTextToSize(text, availableWidth);
-        lines.forEach((line, index) => {
+        lines.forEach((line: string, index: number) => {
           if (cursorY + lineHeight > pageHeight - margin) {
             nextPage();
           }
@@ -452,7 +464,8 @@ function AppContent() {
       Object.entries(filteredStats.templateTypeDistribution).forEach(([name, value]) => {
         const label = name === 'BASE_TEMPLATE' ? 'Base Template (Master)' :
           name === 'BLOCK' ? 'Block' :
-            name === 'SNIPPET' ? 'Snippet' : 'Template';
+            name === 'SNIPPET' ? 'Snippet' :
+              name === 'TEMPLATE' ? 'Template' : 'Others';
         addLine(`• ${label}: ${value}`);
       });
       addLine('');
@@ -467,7 +480,7 @@ function AppContent() {
         templatesByType[template.templateType].push(template);
       });
 
-      const typeOrder = ['BASE_TEMPLATE', 'BLOCK', 'SNIPPET', 'TEMPLATE'];
+      const typeOrder = ['BASE_TEMPLATE', 'BLOCK', 'SNIPPET', 'TEMPLATE', 'OTHER'];
 
       typeOrder.forEach(type => {
         const templates = templatesByType[type] || [];
@@ -475,14 +488,15 @@ function AppContent() {
 
         const typeLabel = type === 'BASE_TEMPLATE' ? 'Base Template (Master)' :
           type === 'BLOCK' ? 'Block' :
-            type === 'SNIPPET' ? 'Snippet' : 'Template';
+            type === 'SNIPPET' ? 'Snippet' :
+              type === 'TEMPLATE' ? 'Template' : 'Others';
 
         addLine(`${typeLabel} (${templates.length} templates)`);
 
-        templates.forEach((template) => {
+        templates.forEach((template: TemplateSummary) => {
           addLine(`  • ${template.templateName}`);
 
-          template.variables.forEach((variable, varIndex) => {
+          template.variables.forEach((variable: TemplateVariable, varIndex: number) => {
             const flowInfo = variable.flow ? ` [Flow: ${variable.flow}]` : '';
             const categoryInfo = variable.categories.length > 0 ? ` [${variable.categories.join(', ')}]` : '';
             addLine(`    ${varIndex + 1}. ${variable.variableName}${flowInfo}${categoryInfo}`);

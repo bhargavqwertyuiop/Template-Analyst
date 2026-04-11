@@ -6,7 +6,7 @@
 export type Category = 'EMAIL' | 'PII' | 'FINANCIAL' | 'SECURITY' | 'CONTACT' | 'NONE';
 export type VariableType = 'System' | 'Global' | 'Sensitive' | 'Other';
 export type RiskLevel = 'HIGH' | 'MEDIUM' | 'LOW' | 'SAFE';
-export type TemplateType = 'BASE_TEMPLATE' | 'BLOCK' | 'SNIPPET' | 'TEMPLATE';
+export type TemplateType = 'BASE_TEMPLATE' | 'BLOCK' | 'SNIPPET' | 'TEMPLATE' | 'OTHER';
 
 export interface RawTemplateData {
   WfdName: string;
@@ -92,7 +92,7 @@ export function extractVariableName(objectName: string | null | undefined): stri
 
 export function detectTemplateType(wfdName: string): TemplateType {
   const path = wfdName.toLowerCase();
-  
+
   if (path.includes('/base') || path.includes('/master') || path.includes('/basetemplate')) {
     return 'BASE_TEMPLATE';
   }
@@ -102,20 +102,23 @@ export function detectTemplateType(wfdName: string): TemplateType {
   if (path.includes('/snippet') || path.includes('/snippets')) {
     return 'SNIPPET';
   }
-  return 'TEMPLATE';
+  if (path.includes('/template') || path.includes('/templates')) {
+    return 'TEMPLATE';
+  }
+  return 'OTHER';
 }
 
 export function detectCategories(variableName: string, dictionary: Dictionary = DEFAULT_SENSITIVE_DICTIONARY): Category[] {
   const normalized = variableName.toLowerCase().trim();
   const matches: Category[] = [];
-  
+
   for (const [category, keywords] of Object.entries(dictionary)) {
     if (category === 'NONE') continue;
     if (keywords.some(keyword => normalized.includes(keyword))) {
       matches.push(category as Category);
     }
   }
-  
+
   return matches;
 }
 
@@ -155,7 +158,7 @@ export function calculateRiskLevel(categories: Set<Category>, sensitiveCount: nu
 
 export function calculateStats(templateSummaries: TemplateSummary[]): DashboardStats {
   const allVariables = templateSummaries.flatMap(s => s.variables);
-  
+
   return {
     totalTemplates: templateSummaries.length,
     totalVariables: allVariables.length,
@@ -178,7 +181,7 @@ export function calculateStats(templateSummaries: TemplateSummary[]): DashboardS
     templateTypeDistribution: templateSummaries.reduce((acc, summary) => {
       acc[summary.templateType] = (acc[summary.templateType] || 0) + 1;
       return acc;
-    }, { BASE_TEMPLATE: 0, BLOCK: 0, SNIPPET: 0, TEMPLATE: 0 } as Record<TemplateType, number>)
+    }, { BASE_TEMPLATE: 0, BLOCK: 0, SNIPPET: 0, TEMPLATE: 0, OTHER: 0 } as Record<TemplateType, number>)
   };
 }
 
@@ -201,7 +204,7 @@ export function processRawData(data: RawTemplateData[], dictionary: Dictionary =
         categoryDistribution: { EMAIL: 0, PII: 0, FINANCIAL: 0, SECURITY: 0, CONTACT: 0, NONE: 0 },
         typeDistribution: { System: 0, Global: 0, Sensitive: 0, Other: 0 },
         riskDistribution: { HIGH: 0, MEDIUM: 0, LOW: 0, SAFE: 0 },
-        templateTypeDistribution: { BASE_TEMPLATE: 0, BLOCK: 0, SNIPPET: 0, TEMPLATE: 0 }
+        templateTypeDistribution: { BASE_TEMPLATE: 0, BLOCK: 0, SNIPPET: 0, TEMPLATE: 0, OTHER: 0 }
       }
     };
   }
@@ -245,7 +248,7 @@ export function processRawData(data: RawTemplateData[], dictionary: Dictionary =
   const templateSummaries: TemplateSummary[] = Object.entries(templateMap).map(([name, vars]) => {
     const sensitiveVars = vars.filter(v => v.categories.length > 0);
     const categories = new Set(sensitiveVars.flatMap(v => v.categories));
-    
+
     const typeDistribution = vars.reduce((acc, v) => {
       acc[v.type] = (acc[v.type] || 0) + 1;
       return acc;
