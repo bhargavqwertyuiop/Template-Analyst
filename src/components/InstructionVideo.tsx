@@ -16,12 +16,12 @@ export function InstructionVideo({
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
         <div className="p-6 text-center">
-          <h3 className="text-2xl font-bold text-gray-900 mb-3">
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
             {title}
           </h3>
-          <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+          <p className="text-gray-600 dark:text-gray-300 mb-6 max-w-2xl mx-auto">
             {description}
           </p>
         </div>

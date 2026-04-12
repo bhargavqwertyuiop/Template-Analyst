@@ -10,7 +10,7 @@ import {
   Database, FileText, Settings,
   Info,
   ChevronRight, X, FileDown, Loader2, Upload,
-  LogOut, User as UserIcon
+  LogOut, User as UserIcon, Moon, Sun
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import jsPDF from 'jspdf';
@@ -39,10 +39,10 @@ import { auth, db } from './firebase';
 import { handleFirestoreError, OperationType } from './lib/firebaseUtils';
 
 const RISK_STYLES: Record<RiskLevel, { label: string; bg: string; text: string; border: string }> = {
-  HIGH: { label: 'High Risk', bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
-  MEDIUM: { label: 'Medium Risk', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
-  LOW: { label: 'Low Risk', bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
-  SAFE: { label: 'Safe', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' }
+  HIGH: { label: 'High Risk', bg: 'bg-red-50 dark:bg-red-900/20', text: 'text-red-700 dark:text-red-400', border: 'border-red-200 dark:border-red-800' },
+  MEDIUM: { label: 'Medium Risk', bg: 'bg-amber-50 dark:bg-amber-900/20', text: 'text-amber-700 dark:text-amber-400', border: 'border-amber-200 dark:border-amber-800' },
+  LOW: { label: 'Low Risk', bg: 'bg-blue-50 dark:bg-blue-900/20', text: 'text-blue-700 dark:text-blue-400', border: 'border-blue-200 dark:border-blue-800' },
+  SAFE: { label: 'Safe', bg: 'bg-emerald-50 dark:bg-emerald-900/20', text: 'text-emerald-700 dark:text-emerald-400', border: 'border-emerald-200 dark:border-emerald-800' }
 };
 
 const TEMPLATE_TYPE_LABELS: Record<TemplateType, string> = {
@@ -97,6 +97,17 @@ function AppContent() {
       data: entry?.data ?? []
     };
   };
+
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    if (saved) return saved === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDarkMode);
+    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+  }, [isDarkMode]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [sensitiveDictionary, setSensitiveDictionary] = useState<Dictionary>(() => {
@@ -236,7 +247,10 @@ function AppContent() {
         },
         data
       };
-      setHistory(prev => [historyEntry, ...prev]);
+      setHistory(prev => {
+        if (prev.some(entry => entry.id === historyEntry.id)) return prev;
+        return [historyEntry, ...prev];
+      });
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, path);
     }
@@ -552,7 +566,7 @@ function AppContent() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <Loader2 className="w-12 h-12 text-gray-600 animate-spin" />
       </div>
     );
@@ -568,20 +582,26 @@ function AppContent() {
 
   if (!processedData) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        <header className="bg-white/95 backdrop-blur-sm border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-2.5 flex flex-col sm:flex-row items-center justify-between sticky top-0 z-50 gap-3">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col text-gray-900 dark:text-white">
+        <header className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 lg:px-8 py-2.5 flex flex-col sm:flex-row items-center justify-between sticky top-0 z-50 gap-3">
           <div className="flex items-center gap-3 self-start sm:self-center">
-            <div className="h-12 sm:h-14 lg:h-16 overflow-hidden transition-transform duration-300 ease-out hover:scale-[1.02]">
-              <img src={logo} alt="Guardient logo" className="h-[330%] w-auto max-w-none object-cover object-left -mt-16 sm:-mt-17" />
+            <div className="h-12 sm:h-14 lg:h-16 overflow-hidden">
+              <img src={logo} alt="Guardient logo" className="h-[330%] w-auto max-w-none object-cover object-left -mt-16 sm:-mt-17 dark:invert dark:hue-rotate-180 dark:mix-blend-screen" />
             </div>
           </div>
           <div className="flex items-center gap-3 sm:gap-4">
-            <div className="flex items-center gap-3 px-3 py-1.5 bg-gray-50 rounded-full border border-gray-200">
-              <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center text-gray-600 border border-gray-200">
+            <button
+              onClick={() => setIsDarkMode(prev => !prev)}
+              className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+            <div className="flex items-center gap-3 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 rounded-full border border-gray-200 dark:border-gray-700">
+              <div className="w-7 h-7 rounded-full bg-white dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600">
                 <UserIcon className="w-4 h-4" />
               </div>
               <div className="flex items-center gap-3">
-                <p className="text-[11px] font-semibold text-gray-900">{user.email}</p>
+                <p className="text-[11px] font-semibold text-gray-900 dark:text-gray-200">{user.email}</p>
                 <button
                   onClick={handleLogout}
                   className="px-2.5 py-1 text-[10px] font-semibold text-white bg-red-500 hover:bg-red-600 rounded-full uppercase tracking-wide transition-colors"
@@ -600,24 +620,24 @@ function AppContent() {
             className="w-full max-w-4xl"
           >
             <div className="text-center mb-12">
-              <h2 className="text-4xl font-extrabold text-gray-900 mb-4 tracking-tight">
+              <h2 className="text-4xl font-extrabold text-gray-900 dark:text-white mb-4 tracking-tight">
                 Secure Your CCM Templates
               </h2>
-              <p className="text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
+              <p className="text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
                 Upload your Quadient Inspire analysis data to instantly detect PII, financial info, and security risks across your workflows.
               </p>
             </div>
 
             <InstructionVideo />
 
-            <div className="bg-white rounded-3xl shadow-2xl shadow-gray-100/50 border border-gray-100 overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl shadow-gray-100/50 dark:shadow-none border border-gray-100 dark:border-gray-700 overflow-hidden">
               <FileUpload onDataLoaded={handleDataLoaded} />
             </div>
 
             {(!authLoading && !rawData) && (
               <div className="mt-12">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-bold text-gray-900">Recent Analyses</h3>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Recent Analyses</h3>
                   {history.length > 0 && (
                     <button onClick={clearHistory} className="text-xs font-bold text-gray-400 hover:text-red-500 uppercase tracking-wider">Clear History</button>
                   )}
@@ -626,21 +646,21 @@ function AppContent() {
                 {historyLoading && isInitialHistoryLoad ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {[1, 2, 3, 4].map(i => (
-                      <div key={i} className="p-5 bg-white rounded-2xl border border-gray-100 shadow-sm animate-pulse">
+                    <div key={i} className="p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm animate-pulse">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-gray-100 rounded-lg" />
+                          <div className="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-lg" />
                             <div className="space-y-2">
-                              <div className="w-24 h-3 bg-gray-100 rounded" />
-                              <div className="w-16 h-2 bg-gray-50 rounded" />
+                            <div className="w-24 h-3 bg-gray-100 dark:bg-gray-700 rounded" />
+                            <div className="w-16 h-2 bg-gray-50 dark:bg-gray-700/50 rounded" />
                             </div>
                           </div>
-                          <div className="w-4 h-4 bg-gray-50 rounded" />
+                        <div className="w-4 h-4 bg-gray-50 dark:bg-gray-700/50 rounded" />
                         </div>
                         <div className="grid grid-cols-3 gap-2">
-                          <div className="h-10 bg-gray-50 rounded-xl" />
-                          <div className="h-10 bg-gray-50 rounded-xl" />
-                          <div className="h-10 bg-gray-50 rounded-xl" />
+                        <div className="h-10 bg-gray-50 dark:bg-gray-700/50 rounded-xl" />
+                        <div className="h-10 bg-gray-50 dark:bg-gray-700/50 rounded-xl" />
+                        <div className="h-10 bg-gray-50 dark:bg-gray-700/50 rounded-xl" />
                         </div>
                       </div>
                     ))}
@@ -651,42 +671,42 @@ function AppContent() {
                       <button
                         key={entry.id}
                         onClick={() => loadFromHistory(entry)}
-                        className="p-5 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-all text-left group"
+                    className="p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-gray-200 dark:hover:border-gray-600 transition-all text-left group"
                       >
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-3">
-                            <div className="p-2 bg-gray-50 rounded-lg text-gray-600 group-hover:bg-gray-800 group-hover:text-white transition-colors">
+                        <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300 group-hover:bg-gray-800 dark:group-hover:bg-gray-600 group-hover:text-white transition-colors">
                               <FileText className="w-4 h-4" />
                             </div>
                             <div>
-                              <p className="text-sm font-bold text-gray-900 truncate max-w-[150px]">{entry.fileName}</p>
+                          <p className="text-sm font-bold text-gray-900 dark:text-white truncate max-w-[150px]">{entry.fileName}</p>
                               <p className="text-[10px] text-gray-400">{new Date(entry.timestamp).toLocaleString()}</p>
                             </div>
                           </div>
                           <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-gray-800 transition-colors" />
                         </div>
                         <div className="grid grid-cols-3 gap-2">
-                          <div className="text-center p-2 bg-gray-50 rounded-xl">
+                        <div className="text-center p-2 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
                             <p className="text-[9px] font-bold text-gray-400 uppercase">Templates</p>
-                            <p className="text-sm font-bold text-gray-900">{entry.stats?.totalTemplates ?? 0}</p>
+                          <p className="text-sm font-bold text-gray-900 dark:text-white">{entry.stats?.totalTemplates ?? 0}</p>
                           </div>
-                          <div className="text-center p-2 bg-gray-50 rounded-xl">
+                        <div className="text-center p-2 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
                             <p className="text-[9px] font-bold text-gray-400 uppercase">Sensitive</p>
-                            <p className="text-sm font-bold text-red-600">{entry.stats?.sensitiveVariablesCount ?? 0}</p>
+                          <p className="text-sm font-bold text-red-600 dark:text-red-400">{entry.stats?.sensitiveVariablesCount ?? 0}</p>
                           </div>
-                          <div className="text-center p-2 bg-gray-50 rounded-xl">
+                        <div className="text-center p-2 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
                             <p className="text-[9px] font-bold text-gray-400 uppercase">High Risk</p>
-                            <p className="text-sm font-bold text-amber-600">{entry.stats?.highRiskCount ?? 0}</p>
+                          <p className="text-sm font-bold text-amber-600 dark:text-amber-400">{entry.stats?.highRiskCount ?? 0}</p>
                           </div>
                         </div>
                       </button>
                     ))}
                   </div>
                 ) : (
-                  <div className="p-12 bg-gray-50 border-2 border-dashed border-gray-200 rounded-3xl text-center">
+                <div className="p-12 bg-gray-50 dark:bg-gray-800/50 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-3xl text-center">
                     <FileText className="w-8 h-8 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-500 font-medium">No history available</p>
-                    <p className="text-xs text-gray-400 mt-1">Upload a file to start your first analysis.</p>
+                  <p className="text-gray-500 dark:text-gray-400 font-medium">No history available</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Upload a file to start your first analysis.</p>
                   </div>
                 )}
               </div>
@@ -694,25 +714,25 @@ function AppContent() {
 
             <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="flex flex-col items-center text-center p-6">
-                <div className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
-                  <Database className="w-6 h-6 text-gray-600" />
+              <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-2xl flex items-center justify-center mb-4">
+                <Database className="w-6 h-6 text-gray-600 dark:text-gray-300" />
                 </div>
-                <h4 className="font-bold text-gray-900 mb-2">Data Extraction</h4>
-                <p className="text-sm text-gray-500">Automatically extracts variable names from complex object paths.</p>
+              <h4 className="font-bold text-gray-900 dark:text-white mb-2">Data Extraction</h4>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Automatically extracts variable names from complex object paths.</p>
               </div>
               <div className="flex flex-col items-center text-center p-6">
-                <div className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
-                  <ShieldCheck className="w-6 h-6 text-gray-600" />
+              <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-2xl flex items-center justify-center mb-4">
+                <ShieldCheck className="w-6 h-6 text-gray-600 dark:text-gray-300" />
                 </div>
-                <h4 className="font-bold text-gray-900 mb-2">Risk Scoring</h4>
-                <p className="text-sm text-gray-500">Intelligent categorization and risk assessment based on data sensitivity.</p>
+              <h4 className="font-bold text-gray-900 dark:text-white mb-2">Risk Scoring</h4>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Intelligent categorization and risk assessment based on data sensitivity.</p>
               </div>
               <div className="flex flex-col items-center text-center p-6">
-                <div className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
-                  <LayoutDashboard className="w-6 h-6 text-gray-600" />
+              <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-2xl flex items-center justify-center mb-4">
+                <LayoutDashboard className="w-6 h-6 text-gray-600 dark:text-gray-300" />
                 </div>
-                <h4 className="font-bold text-gray-900 mb-2">Visual Insights</h4>
-                <p className="text-sm text-gray-500">Interactive charts and tables to help you prioritize security fixes.</p>
+              <h4 className="font-bold text-gray-900 dark:text-white mb-2">Visual Insights</h4>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Interactive charts and tables to help you prioritize security fixes.</p>
               </div>
             </div>
           </motion.div>
@@ -722,11 +742,11 @@ function AppContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <header className="bg-white/95 backdrop-blur-sm border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-2.5 flex flex-col lg:flex-row items-center justify-between sticky top-0 z-50 gap-3">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col text-gray-900 dark:text-white">
+      <header className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 lg:px-8 py-2.5 flex flex-col lg:flex-row items-center justify-between sticky top-0 z-50 gap-3">
         <div className="flex items-center gap-3 w-full lg:w-auto">
           <div className="h-10 sm:h-12 lg:h-14 shrink-0">
-            <img src={logo} alt="Guardient logo" className="h-full w-auto object-contain" />
+            <img src={logo} alt="Guardient logo" className="h-full w-auto object-contain dark:invert dark:hue-rotate-180 dark:mix-blend-screen" />
           </div>
         </div>
 
@@ -738,20 +758,20 @@ function AppContent() {
               placeholder="Search templates or variables..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-gray-500/20 focus:border-gray-500 transition-all w-full"
+            className="pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-gray-500/20 focus:border-gray-500 dark:text-white transition-all w-full"
             />
           </div>
 
           <div className="flex items-center gap-2.5">
             <div className="flex items-center gap-2">
-              <label className="flex items-center gap-2 px-3 py-2 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors bg-white rounded-full cursor-pointer border border-gray-200 hover:border-gray-300 h-9" title="Upload keywords CSV with columns: Category and Keyword">
+            <label className="flex items-center gap-2 px-3 py-2 text-[11px] font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors bg-white dark:bg-gray-800 rounded-full cursor-pointer border border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 h-9" title="Upload keywords CSV with columns: Category and Keyword">
                 <Upload className="w-3 h-3" />
                 Upload Keywords CSV
                 <input type="file" accept=".csv" className="hidden" onChange={handleDictionaryUpload} />
               </label>
               <button
                 onClick={() => setIsDictionaryManagerOpen(true)}
-                className="flex items-center gap-2 px-3 py-2 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors bg-white rounded-full border border-gray-200 hover:border-gray-300 h-9"
+              className="flex items-center gap-2 px-3 py-2 text-[11px] font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors bg-white dark:bg-gray-800 rounded-full border border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 h-9"
               >
                 <Settings className="w-3 h-3" />
                 Manage Keywords
@@ -760,23 +780,23 @@ function AppContent() {
             <a
               href="/keyword-template.csv"
               download
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-full transition-colors"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-full transition-colors"
               title="Download the keywords CSV template"
             >
               <Info className="w-3.5 h-3.5" />
               Keywords CSV template
             </a>
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-full border border-gray-200 h-9">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 rounded-full border border-gray-200 dark:border-gray-700 h-9">
               <span className="text-[10px] font-medium text-gray-500 uppercase tracking-[0.18em]">
                 Variables
               </span>
-              <span className="inline-flex items-center rounded-full bg-white border border-gray-200 px-2.5 py-1 text-[11px] font-semibold text-gray-800 leading-none">
+            <span className="inline-flex items-center rounded-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 px-2.5 py-1 text-[11px] font-semibold text-gray-800 dark:text-gray-200 leading-none">
                 {countDictionaryKeywords(sensitiveDictionary)}
               </span>
               {localStorage.getItem('sensitive_dictionary') && (
                 <button
                   onClick={resetDictionary}
-                  className="px-2 py-1 text-[10px] text-red-500 hover:bg-red-50 rounded-full font-semibold uppercase tracking-wide transition-colors"
+                className="px-2 py-1 text-[10px] text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full font-semibold uppercase tracking-wide transition-colors"
                 >
                   Reset
                 </button>
@@ -786,15 +806,22 @@ function AppContent() {
 
           <div className="flex items-center gap-1.5">
             <button
+              onClick={() => setIsDarkMode(prev => !prev)}
+              className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded-full hover:bg-gray-50 dark:hover:bg-gray-700"
+              title="Toggle Dark Mode"
+            >
+              {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+            <button
               onClick={() => { resetData(); setSelectedTemplate(null); }}
-              className="p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-full hover:bg-gray-50"
+              className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded-full hover:bg-gray-50 dark:hover:bg-gray-700"
               title="Reset View"
             >
               <RefreshCcw className="w-4 h-4" />
             </button>
             <button
               onClick={exportToCSV}
-              className="p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-full hover:bg-gray-50"
+              className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded-full hover:bg-gray-50 dark:hover:bg-gray-700"
               title="Export CSV"
             >
               <Download className="w-4 h-4" />
@@ -813,12 +840,12 @@ function AppContent() {
             </button>
           </div>
 
-          <div className="flex items-center gap-3 px-3 py-1.5 bg-gray-50 rounded-full border border-gray-200 h-9">
-            <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-gray-600 border border-gray-200">
+          <div className="flex items-center gap-3 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 rounded-full border border-gray-200 dark:border-gray-700 h-9">
+            <div className="w-6 h-6 rounded-full bg-white dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600">
               <UserIcon className="w-3 h-3" />
             </div>
             <div className="flex items-center gap-3">
-              <p className="text-[10px] font-semibold text-gray-900 truncate max-w-[96px]">{user.email}</p>
+              <p className="text-[10px] font-semibold text-gray-900 dark:text-gray-200 truncate max-w-[96px]">{user.email}</p>
               <button
                 onClick={handleLogout}
                 className="px-2.5 py-1 text-[9px] font-semibold text-white bg-red-500 hover:bg-red-600 rounded-full uppercase tracking-wide transition-colors"
@@ -841,15 +868,15 @@ function AppContent() {
           <div className="flex items-center gap-4 w-full md:w-auto">
             <div className="flex items-center gap-2">
               <Filter className="w-4 h-4 text-gray-400" />
-              <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Filters</span>
+            <span className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Filters</span>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
-            <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2 flex-1 md:flex-none justify-between">
-              <span className="text-sm font-medium text-gray-600">Sensitive Only</span>
+          <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2 flex-1 md:flex-none justify-between">
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Sensitive Only</span>
               <button
                 onClick={toggleSensitiveOnly}
-                className={`w-10 h-5 rounded-full transition-colors relative ${showSensitiveOnly ? 'bg-gray-800' : 'bg-gray-200'}`}
+              className={`w-10 h-5 rounded-full transition-colors relative ${showSensitiveOnly ? 'bg-gray-800 dark:bg-gray-600' : 'bg-gray-200 dark:bg-gray-700'}`}
               >
                 <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-transform ${showSensitiveOnly ? 'translate-x-6' : 'translate-x-1'}`} />
               </button>
@@ -857,7 +884,7 @@ function AppContent() {
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value as Category | 'ALL')}
-              className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500/20 flex-1 md:flex-none"
+            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500/20 flex-1 md:flex-none dark:text-white"
             >
               <option value="ALL">All Categories</option>
               <option value="EMAIL">Email</option>
@@ -869,7 +896,7 @@ function AppContent() {
             <select
               value={selectedRisk}
               onChange={(e) => setSelectedRisk(e.target.value as RiskLevel | 'ALL')}
-              className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500/20 flex-1 md:flex-none"
+            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500/20 flex-1 md:flex-none dark:text-white"
             >
               {riskOptions.map(option => (
                 <option key={option.value} value={option.value}>{option.label}</option>
@@ -878,7 +905,7 @@ function AppContent() {
             <select
               value={selectedTemplateType}
               onChange={(e) => setSelectedTemplateType(e.target.value as TemplateType | 'ALL')}
-              className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500/20 flex-1 md:flex-none"
+            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500/20 flex-1 md:flex-none dark:text-white"
             >
               <option value="ALL">All Template Types</option>
               <option value="BASE_TEMPLATE">Base Template (Master)</option>
@@ -894,6 +921,7 @@ function AppContent() {
           <Charts
             stats={filteredStats}
             templateSummaries={filteredSummaries}
+            isDarkMode={isDarkMode}
           />
         )}
 
@@ -916,13 +944,13 @@ function AppContent() {
                   exit={{ opacity: 0, x: -20 }}
                   className="space-y-6"
                 >
-                  <div className="bg-gradient-to-br from-white to-slate-50 p-8 rounded-2xl border border-slate-200 shadow-sm">
+              <div className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-800 dark:to-gray-800/90 p-8 rounded-2xl border border-slate-200 dark:border-gray-700 shadow-sm">
                     <div className="flex flex-col gap-6">
                       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 pb-6 border-b border-slate-200">
                         <div>
-                          <p className="text-xs uppercase tracking-[0.32em] text-gray-600 font-semibold mb-2">Template Report</p>
-                          <h3 className="text-2xl font-bold text-gray-900 mb-2">{selectedTemplate.templateName}</h3>
-                          <p className="text-sm text-gray-600">{selectedTemplateRiskNote}</p>
+                      <p className="text-xs uppercase tracking-[0.32em] text-gray-600 dark:text-gray-400 font-semibold mb-2">Template Report</p>
+                      <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{selectedTemplate.templateName}</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">{selectedTemplateRiskNote}</p>
                         </div>
                         <button
                           onClick={() => setSelectedTemplate(null)}
@@ -933,35 +961,35 @@ function AppContent() {
                       </div>
 
                       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                        <div className="rounded-3xl border border-gray-100 bg-white p-4 shadow-sm">
+                    <div className="rounded-3xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-sm">
                           <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Risk level</p>
                           <span className={`inline-flex items-center rounded-full px-3 py-2 text-xs font-semibold ${RISK_STYLES[selectedTemplate.riskLevel].bg} ${RISK_STYLES[selectedTemplate.riskLevel].text}`}>
                             {RISK_STYLES[selectedTemplate.riskLevel].label}
                           </span>
                         </div>
-                        <div className="rounded-3xl border border-gray-100 bg-white p-4 shadow-sm">
+                    <div className="rounded-3xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-sm">
                           <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Template type</p>
                           <span className="inline-flex items-center rounded-full bg-blue-50 text-blue-700 px-3 py-2 text-xs font-semibold">
                             {TEMPLATE_TYPE_LABELS[selectedTemplate.templateType]}
                           </span>
                         </div>
-                        <div className="rounded-3xl border border-gray-100 bg-white p-4 shadow-sm">
+                    <div className="rounded-3xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-sm">
                           <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Total variables</p>
-                          <p className="text-3xl font-bold text-gray-900">{selectedTemplate.totalCount}</p>
+                      <p className="text-3xl font-bold text-gray-900 dark:text-white">{selectedTemplate.totalCount}</p>
                         </div>
-                        <div className="rounded-3xl border border-gray-100 bg-white p-4 shadow-sm">
+                    <div className="rounded-3xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-sm">
                           <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Sensitive</p>
                           <p className="text-3xl font-bold text-red-600">{selectedTemplate.sensitiveCount}</p>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                        <div className="rounded-3xl border border-gray-100 bg-white p-4 shadow-sm">
+                    <div className="rounded-3xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-sm">
                           <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Detected categories</p>
                           <div className="flex flex-wrap gap-2">
                             {selectedTemplate.categories.size > 0 ? Array.from(selectedTemplate.categories).map((category: Category) => (
                               <span key={category} className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
-                                {CATEGORY_LABELS[category]} ({selectedTemplateCategoryBreakdown.get(category) ?? 0})
+                              <span className="dark:text-gray-800">{CATEGORY_LABELS[category]} ({selectedTemplateCategoryBreakdown.get(category) ?? 0})</span>
                               </span>
                             )) : (
                               <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">No sensitive categories detected</span>
@@ -969,9 +997,9 @@ function AppContent() {
                           </div>
                         </div>
 
-                        <div className="rounded-3xl border border-gray-100 bg-white p-4 shadow-sm">
+                    <div className="rounded-3xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-sm">
                           <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Template path</p>
-                          <p className="text-sm text-gray-700 break-all font-mono bg-slate-50 p-3 rounded-xl border border-slate-100">
+                      <p className="text-sm text-gray-700 dark:text-gray-300 break-all font-mono bg-slate-50 dark:bg-gray-900 p-3 rounded-xl border border-slate-100 dark:border-gray-700">
                             {selectedTemplate.templatePath}
                           </p>
                         </div>
@@ -979,10 +1007,10 @@ function AppContent() {
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="border-b border-gray-100 px-6 py-4 bg-gradient-to-r from-gray-50 to-white">
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+                    <div className="border-b border-gray-100 dark:border-gray-700 px-6 py-4 bg-gradient-to-r from-gray-50 dark:from-gray-800 to-white dark:to-gray-800">
                       <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">Variables</p>
-                      <p className="text-sm text-gray-600 mt-1">
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                         {showSensitiveOnly ? 'Sensitive variables only' : 'All variables'} (
                         {showSensitiveOnly ? selectedTemplate.variables.filter(v => v.categories.length > 0).length : selectedTemplate.variables.length}
                         )
@@ -1001,13 +1029,13 @@ function AppContent() {
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="h-full min-h-[400px] bg-gray-100/50 border-2 border-dashed border-gray-200 rounded-3xl flex flex-col items-center justify-center text-center p-12"
+                className="h-full min-h-[400px] bg-gray-100/50 dark:bg-gray-800/50 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-3xl flex flex-col items-center justify-center text-center p-12"
                 >
-                  <div className="bg-white p-4 rounded-2xl shadow-sm mb-4">
+                <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm mb-4">
                     <FileText className="w-8 h-8 text-gray-300" />
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Select a Template</h3>
-                  <p className="text-gray-500 max-w-xs">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Select a Template</h3>
+                <p className="text-gray-500 dark:text-gray-400 max-w-xs">
                     Click on a template from the list to view its sensitive variables and detailed risk assessment.
                   </p>
                 </motion.div>
@@ -1017,15 +1045,15 @@ function AppContent() {
         </div>
       </main>
 
-      <footer className="bg-white border-t border-gray-100 p-8 mt-12">
+      <footer className="bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 p-8 mt-12">
         <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
             <ShieldCheck className="w-5 h-5 text-gray-600" />
-            <span className="text-sm font-semibold text-gray-900">Guardient v1.0</span>
+            <span className="text-sm font-semibold text-gray-900 dark:text-white">Guardient v1.0</span>
           </div>
           <div className="flex items-center gap-8 text-sm text-gray-500">
-            <a href="https://github.com/bhargavqwertyuiop/Template-Analyst" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 transition-colors">Documentation</a>
-            <button onClick={() => setIsAboutOpen(true)} className="hover:text-gray-600 transition-colors">About</button>
+            <a href="https://github.com/bhargavqwertyuiop/Template-Analyst" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Documentation</a>
+            <button onClick={() => setIsAboutOpen(true)} className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">About</button>
           </div>
           <p className="text-xs text-gray-400">© 2026 Quadient Inspire CCM Security. All rights reserved.</p>
         </div>
@@ -1042,11 +1070,11 @@ function AppContent() {
 
       {isAboutOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden">
-            <div className="p-6 border-b border-gray-100">
+            <div className="bg-white dark:bg-gray-800 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden">
+              <div className="p-6 border-b border-gray-100 dark:border-gray-700">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">About Guardient</h2>
-                <button onClick={() => setIsAboutOpen(false)} className="p-2 hover:bg-gray-50 rounded-xl transition-colors">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">About Guardient</h2>
+                  <button onClick={() => setIsAboutOpen(false)} className="p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl transition-colors">
                   <X className="w-5 h-5 text-gray-400" />
                 </button>
               </div>
@@ -1055,33 +1083,33 @@ function AppContent() {
             <div className="p-6">
               <div className="text-center mb-6">
                 <ShieldCheck className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Guardient v1.0</h3>
-                <p className="text-sm text-gray-600">Secure your Quadient Inspire templates with intelligent risk detection</p>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Guardient v1.0</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Secure your Quadient Inspire templates with intelligent risk detection</p>
               </div>
 
-              <div className="border-t border-gray-100 pt-6">
-                <h4 className="text-sm font-semibold text-gray-900 mb-4">Development Team</h4>
+                <div className="border-t border-gray-100 dark:border-gray-700 pt-6">
+                  <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Development Team</h4>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between py-2">
-                    <span className="text-sm font-medium text-gray-900">Pratiksha</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">Pratiksha</span>
                     <span className="text-xs text-gray-500">pratiksha@example.com</span>
                   </div>
                   <div className="flex items-center justify-between py-2">
-                    <span className="text-sm font-medium text-gray-900">Subhrajyoti</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">Subhrajyoti</span>
                     <span className="text-xs text-gray-500">subhrajyoti@example.com</span>
                   </div>
                   <div className="flex items-center justify-between py-2">
-                    <span className="text-sm font-medium text-gray-900">Vinothh</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">Vinothh</span>
                     <span className="text-xs text-gray-500">vinothh@example.com</span>
                   </div>
                   <div className="flex items-center justify-between py-2">
-                    <span className="text-sm font-medium text-gray-900">Bhargav</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">Bhargav</span>
                     <span className="text-xs text-gray-500">bhargav@example.com</span>
                   </div>
                 </div>
               </div>
 
-              <div className="border-t border-gray-100 pt-6 mt-6">
+                <div className="border-t border-gray-100 dark:border-gray-700 pt-6 mt-6">
                 <p className="text-xs text-gray-400 text-center">
                   © 2026 Quadient Inspire CCM Security. All rights reserved.
                 </p>
@@ -1093,20 +1121,20 @@ function AppContent() {
 
       {keywordsUploadWarning && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-3xl bg-white shadow-2xl border border-amber-100 overflow-hidden">
-            <div className="flex items-center justify-between border-b border-amber-100 bg-amber-50 px-6 py-4">
-              <div className="flex items-center gap-3 text-amber-800">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white border border-amber-100">
+            <div className="w-full max-w-md rounded-3xl bg-white dark:bg-gray-800 shadow-2xl border border-amber-100 dark:border-amber-900/50 overflow-hidden">
+              <div className="flex items-center justify-between border-b border-amber-100 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-900/20 px-6 py-4">
+                <div className="flex items-center gap-3 text-amber-800 dark:text-amber-500">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white dark:bg-gray-800 border border-amber-100 dark:border-amber-900/50">
                   <AlertCircle className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold">Keywords CSV warning</h3>
-                  <p className="text-xs font-medium text-amber-700">The uploaded file was not applied.</p>
+                    <h3 className="text-base font-bold dark:text-amber-400">Keywords CSV warning</h3>
+                    <p className="text-xs font-medium text-amber-700 dark:text-amber-500">The uploaded file was not applied.</p>
                 </div>
               </div>
               <button
                 onClick={() => setKeywordsUploadWarning(null)}
-                className="rounded-full p-2 text-amber-600 hover:bg-amber-100 transition-colors"
+                  className="rounded-full p-2 text-amber-600 dark:text-amber-500 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
                 aria-label="Close warning"
               >
                 <X className="h-4 w-4" />
@@ -1114,13 +1142,13 @@ function AppContent() {
             </div>
 
             <div className="px-6 py-5">
-              <p className="text-sm leading-relaxed text-gray-700">{keywordsUploadWarning}</p>
+                <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">{keywordsUploadWarning}</p>
             </div>
 
-            <div className="flex justify-end gap-3 border-t border-gray-100 px-6 py-4 bg-gray-50">
+              <div className="flex justify-end gap-3 border-t border-gray-100 dark:border-gray-700 px-6 py-4 bg-gray-50 dark:bg-gray-900/50">
               <button
                 onClick={() => setKeywordsUploadWarning(null)}
-                className="rounded-full bg-gray-800 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-900 transition-colors"
+                  className="rounded-full bg-gray-800 dark:bg-gray-700 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-900 dark:hover:bg-gray-600 transition-colors"
               >
                 OK
               </button>

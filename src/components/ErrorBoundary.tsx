@@ -52,14 +52,14 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl shadow-gray-100/50 border border-gray-100 p-8 text-center">
-            <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-6 text-red-600">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-3xl shadow-2xl shadow-gray-100/50 dark:shadow-none border border-gray-100 dark:border-gray-700 p-8 text-center">
+            <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-2xl flex items-center justify-center mx-auto mb-6 text-red-600 dark:text-red-500">
               <AlertCircle className="w-8 h-8" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Something went wrong</h2>
-            <div className="bg-gray-50 rounded-2xl p-4 mb-8 text-left">
-              <p className="text-sm font-mono text-gray-600 break-all">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Something went wrong</h2>
+            <div className="bg-gray-50 dark:bg-gray-900/50 rounded-2xl p-4 mb-8 text-left">
+              <p className="text-sm font-mono text-gray-600 dark:text-gray-300 break-all">
                 {errorMessage}
               </p>
             </div>

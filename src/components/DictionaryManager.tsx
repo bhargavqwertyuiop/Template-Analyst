@@ -56,25 +56,25 @@ export function DictionaryManager({ dictionary, onSave, onClose, onReset }: Dict
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col">
-        <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+      <div className="bg-white dark:bg-gray-800 w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+        <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-900/50">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Manage Keywords</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Manage Keywords</h2>
             <p className="text-xs text-gray-500 mt-1 uppercase tracking-wider font-semibold">Customize keywords for risk detection</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-white rounded-xl transition-colors">
+          <button onClick={onClose} className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-xl transition-colors">
             <X className="w-5 h-5 text-gray-400" />
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
           {/* Category Threat Levels Section */}
-          <div className="mb-8 bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl border border-gray-200 p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <div className="mb-8 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <span className="w-2 h-2 bg-red-500 rounded-full"></span>
               Category Threat Levels
             </h3>
-            <p className="text-sm text-gray-600 mb-6">
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
               Understanding risk levels helps you prioritize which categories to monitor. Higher threat categories contribute more to overall template risk scores.
             </p>
 
@@ -82,13 +82,13 @@ export function DictionaryManager({ dictionary, onSave, onClose, onReset }: Dict
               {(Object.entries(CATEGORY_THREATS) as [Category, typeof CATEGORY_THREATS[Category]][])
                 .filter(([category]) => category !== 'NONE')
                 .map(([category, threat]) => (
-                  <div key={category} className="bg-white rounded-xl border border-gray-100 p-4 hover:shadow-md transition-all">
+                  <div key={category} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 hover:shadow-md transition-all">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <div style={{ color: CATEGORY_COLORS[category] }}>
                           {CATEGORY_ICONS[category]}
                         </div>
-                        <span className="font-bold text-sm text-gray-900">{category}</span>
+                        <span className="font-bold text-sm text-gray-900 dark:text-white">{category}</span>
                       </div>
                       <span className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full ${threat.level === 'High' ? 'bg-red-100 text-red-700' :
                         threat.level === 'Medium' ? 'bg-amber-100 text-amber-700' :
@@ -97,7 +97,7 @@ export function DictionaryManager({ dictionary, onSave, onClose, onReset }: Dict
                         {threat.level} Risk
                       </span>
                     </div>
-                    <p className="text-xs text-gray-600 leading-relaxed">{threat.description}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">{threat.description}</p>
                   </div>
                 ))}
             </div>
@@ -106,13 +106,13 @@ export function DictionaryManager({ dictionary, onSave, onClose, onReset }: Dict
           {/* Keyword Management Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {(Object.keys(tempDictionary) as Category[]).filter(cat => cat !== 'NONE').map(category => (
-              <div key={category} className="bg-gray-50 rounded-2xl border border-gray-100 p-4 flex flex-col">
+              <div key={category} className="bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 flex flex-col">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2" style={{ color: CATEGORY_COLORS[category] }}>
                     {CATEGORY_ICONS[category]}
-                    <span className="font-bold text-sm uppercase tracking-wide">{category}</span>
+                    <span className="font-bold text-sm uppercase tracking-wide dark:text-gray-200">{category}</span>
                   </div>
-                  <span className="text-[10px] font-bold text-gray-400 bg-white px-2 py-1 rounded-full border border-gray-100">
+                  <span className="text-[10px] font-bold text-gray-400 bg-white dark:bg-gray-800 px-2 py-1 rounded-full border border-gray-100 dark:border-gray-700">
                     {tempDictionary[category].length} Keywords
                   </span>
                 </div>
@@ -124,11 +124,11 @@ export function DictionaryManager({ dictionary, onSave, onClose, onReset }: Dict
                     value={newKeywords[category] || ''}
                     onChange={(e) => setNewKeywords(prev => ({ ...prev, [category]: e.target.value }))}
                     onKeyDown={(e) => e.key === 'Enter' && handleAddKeyword(category)}
-                    className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-gray-500/20 focus:border-gray-500 transition-all"
+                    className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-gray-500/20 focus:border-gray-500 dark:text-white transition-all"
                   />
                   <button
                     onClick={() => handleAddKeyword(category)}
-                    className="p-2 bg-gray-800 text-white rounded-xl hover:bg-gray-900 transition-colors"
+                    className="p-2 bg-gray-800 dark:bg-gray-700 text-white rounded-xl hover:bg-gray-900 dark:hover:bg-gray-600 transition-colors"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
@@ -138,7 +138,7 @@ export function DictionaryManager({ dictionary, onSave, onClose, onReset }: Dict
                   {tempDictionary[category].map(keyword => (
                     <div
                       key={keyword}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-[11px] font-medium text-gray-700 group hover:border-red-200 hover:bg-red-50 transition-all"
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-[11px] font-medium text-gray-700 dark:text-gray-300 group hover:border-red-200 dark:hover:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
                     >
                       {keyword}
                       <button
@@ -158,10 +158,10 @@ export function DictionaryManager({ dictionary, onSave, onClose, onReset }: Dict
           </div>
         </div>
 
-        <div className="p-6 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+        <div className="p-6 border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 flex items-center justify-between">
           <button
             onClick={onReset}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors rounded-xl"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors rounded-xl"
           >
             <RotateCcw className="w-4 h-4" />
             Reset to Defaults
@@ -169,7 +169,7 @@ export function DictionaryManager({ dictionary, onSave, onClose, onReset }: Dict
           <div className="flex items-center gap-3">
             <button
               onClick={onClose}
-              className="px-6 py-2 text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors"
+              className="px-6 py-2 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
               Cancel
             </button>

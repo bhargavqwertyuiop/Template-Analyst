@@ -16,30 +16,30 @@ import { CATEGORY_COLORS, CATEGORY_ICONS, TYPE_COLORS } from './Dashboard';
 const RISK_CONFIG: Record<RiskLevel, { icon: React.ReactNode; color: string; bg: string; border: string; label: string }> = {
   HIGH: {
     icon: <AlertCircle className="w-4 h-4" />,
-    color: 'text-red-700',
-    bg: 'bg-red-50',
-    border: 'border-red-200',
+    color: 'text-red-700 dark:text-red-400',
+    bg: 'bg-red-50 dark:bg-red-900/20',
+    border: 'border-red-200 dark:border-red-800',
     label: 'High Risk'
   },
   MEDIUM: {
     icon: <AlertTriangle className="w-4 h-4" />,
-    color: 'text-amber-700',
-    bg: 'bg-amber-50',
-    border: 'border-amber-200',
+    color: 'text-amber-700 dark:text-amber-400',
+    bg: 'bg-amber-50 dark:bg-amber-900/20',
+    border: 'border-amber-200 dark:border-amber-800',
     label: 'Medium Risk'
   },
   LOW: {
     icon: <AlertCircle className="w-4 h-4" />,
-    color: 'text-slate-700',
-    bg: 'bg-slate-50',
-    border: 'border-slate-200',
+    color: 'text-slate-700 dark:text-slate-400',
+    bg: 'bg-slate-50 dark:bg-slate-900/20',
+    border: 'border-slate-200 dark:border-slate-800',
     label: 'Low Risk'
   },
   SAFE: {
     icon: <CheckCircle className="w-4 h-4" />,
-    color: 'text-emerald-700',
-    bg: 'bg-emerald-50',
-    border: 'border-emerald-200',
+    color: 'text-emerald-700 dark:text-emerald-400',
+    bg: 'bg-emerald-50 dark:bg-emerald-900/20',
+    border: 'border-emerald-200 dark:border-emerald-800',
     label: 'Safe'
   }
 };
@@ -60,19 +60,19 @@ function highlightText(text: string, searchTerm: string | undefined) {
 
   return parts.map((part, index) =>
     part.toLowerCase() === searchTerm.toLowerCase()
-      ? <span key={index} className="bg-yellow-200 text-gray-900 px-0.5 rounded font-bold">{part}</span>
+      ? <span key={index} className="bg-yellow-200 dark:bg-yellow-500/30 text-gray-900 dark:text-yellow-200 px-0.5 rounded font-bold">{part}</span>
       : part
   );
 }
 
 export function TemplateList({ risks, onSelectTemplate, selectedTemplate, searchQuery }: TemplateListProps) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      <div className="p-6 border-b border-gray-50">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+      <div className="p-6 border-b border-gray-50 dark:border-gray-700">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">Template Risk Summary</h3>
-            <p className="text-sm text-gray-500">{risks.length} templates analyzed. Select a template to inspect sensitive variables, category exposure, and risk drivers.</p>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Template Risk Summary</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{risks.length} templates analyzed. Select a template to inspect sensitive variables, category exposure, and risk drivers.</p>
           </div>
           <div className="flex items-center gap-2 text-xs text-gray-400">
             <span className="flex items-center gap-1">
@@ -87,7 +87,7 @@ export function TemplateList({ risks, onSelectTemplate, selectedTemplate, search
           </div>
         </div>
       </div>
-      <div className="divide-y divide-gray-50 max-h-[600px] overflow-y-auto">
+      <div className="divide-y divide-gray-50 dark:divide-gray-700 max-h-[600px] overflow-y-auto">
         {risks.map((risk) => {
           const config = RISK_CONFIG[risk.riskLevel];
           const isSelected = selectedTemplate?.templateName === risk.templateName;
@@ -98,7 +98,7 @@ export function TemplateList({ risks, onSelectTemplate, selectedTemplate, search
               onClick={() => onSelectTemplate(isSelected ? null : risk)}
               className={`
                 w-full p-6 text-left transition-all duration-200 flex items-center justify-between
-                ${isSelected ? 'bg-gray-100' : 'hover:bg-gray-50'}
+              ${isSelected ? 'bg-gray-100 dark:bg-gray-700' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'}
               `}
             >
               <div className="flex items-center gap-4">
@@ -106,14 +106,14 @@ export function TemplateList({ risks, onSelectTemplate, selectedTemplate, search
                   {config.icon}
                 </div>
                 <div>
-                  <h4 className="font-semibold text-gray-900 mb-1">
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
                     {highlightText(risk.templateName, searchQuery)}
                   </h4>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full ${config.bg} ${config.color}`}>
                       {config.label}
                     </span>
-                    <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700`}>
+                  <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300`}>
                       {risk.templateType === 'BASE_TEMPLATE' ? 'Base Template (Master)' :
                         risk.templateType === 'BLOCK' ? 'Block' :
                           risk.templateType === 'SNIPPET' ? 'Snippet' :
@@ -130,7 +130,7 @@ export function TemplateList({ risks, onSelectTemplate, selectedTemplate, search
                   {Array.from(risk.categories).map((cat, i) => (
                     <div
                       key={i}
-                      className="w-8 h-8 rounded-full bg-white border-2 border-white shadow-sm flex items-center justify-center"
+                      className="w-8 h-8 rounded-full bg-white dark:bg-gray-800 border-2 border-white dark:border-gray-800 shadow-sm flex items-center justify-center"
                       style={{ color: CATEGORY_COLORS[cat] }}
                       title={cat}
                     >
@@ -138,7 +138,7 @@ export function TemplateList({ risks, onSelectTemplate, selectedTemplate, search
                     </div>
                   ))}
                   {risk.categories.size > 3 && (
-                    <div className="w-8 h-8 rounded-full bg-gray-100 border-2 border-white shadow-sm flex items-center justify-center text-[10px] font-bold text-gray-500">
+                    <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 border-2 border-white dark:border-gray-800 shadow-sm flex items-center justify-center text-[10px] font-bold text-gray-500 dark:text-gray-300">
                       +{risk.categories.size - 3}
                     </div>
                   )}
@@ -161,17 +161,17 @@ interface VariableTableProps {
 export function VariableTable({ variables, searchQuery }: VariableTableProps) {
   if (variables.length === 0) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center">
-        <p className="text-sm font-medium text-gray-500">No variables match the current view. Try toggling the sensitive filter or selecting a different template.</p>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-12 text-center">
+        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">No variables match the current view. Try toggling the sensitive filter or selecting a different template.</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm text-left">
-          <thead className="bg-gray-50 text-gray-500 uppercase text-[10px] tracking-wider font-bold">
+          <thead className="bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 uppercase text-[10px] tracking-wider font-bold">
             <tr>
               <th className="px-6 py-4">Variable</th>
               <th className="px-6 py-4">Type</th>
@@ -180,11 +180,11 @@ export function VariableTable({ variables, searchQuery }: VariableTableProps) {
               <th className="px-6 py-4">Count</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-50">
+          <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
             {variables.map((v, i) => (
-              <tr key={i} className="hover:bg-gray-50 transition-colors">
+              <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                 <td className="px-6 py-4">
-                  <div className="font-mono text-gray-800 bg-gray-100 px-2 py-1 rounded inline-block" title={v.objectPath}>
+                  <div className="font-mono text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded inline-block" title={v.objectPath}>
                     {highlightText(v.variableName, searchQuery)}
                   </div>
                   <div className="text-[11px] text-gray-400 mt-1">
@@ -211,12 +211,12 @@ export function VariableTable({ variables, searchQuery }: VariableTableProps) {
                         {cat}
                       </div>
                     )) : (
-                      <span className="text-gray-300">None</span>
+                      <span className="text-gray-300 dark:text-gray-600">None</span>
                     )}
                   </div>
                 </td>
-                <td className="px-6 py-4 text-gray-500">{v.flow}</td>
-                <td className="px-6 py-4 font-semibold text-gray-900">{v.count}</td>
+                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{v.flow}</td>
+                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{v.count}</td>
               </tr>
             ))}
           </tbody>

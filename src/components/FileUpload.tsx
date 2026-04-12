@@ -131,8 +131,8 @@ export function FileUpload({ onDataLoaded }: FileUploadProps) {
           relative border-3 border-dashed rounded-[2.5rem] p-12 transition-all duration-500
           flex flex-col items-center justify-center text-center group
           ${isDragging 
-            ? 'border-gray-500 bg-gray-50/80 scale-[1.02]' 
-            : 'border-gray-200 hover:border-gray-400 hover:bg-gray-50/50'}
+            ? 'border-gray-500 bg-gray-50/80 dark:bg-gray-800/80 scale-[1.02]' 
+            : 'border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-50/50 dark:hover:bg-gray-800/50'}
           ${isLoading ? 'opacity-50 pointer-events-none' : ''}
         `}
       >
@@ -146,7 +146,7 @@ export function FileUpload({ onDataLoaded }: FileUploadProps) {
         
         <div className={`
           p-6 rounded-3xl mb-6 transition-all duration-500
-          ${isDragging ? 'bg-gray-800 text-white rotate-12 scale-110' : 'bg-gray-50 text-gray-600 group-hover:scale-110 group-hover:-rotate-6'}
+          ${isDragging ? 'bg-gray-800 dark:bg-gray-700 text-white rotate-12 scale-110' : 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 group-hover:scale-110 group-hover:-rotate-6'}
         `}>
           {isLoading ? (
             <Loader2 className="w-12 h-12 animate-spin" />
@@ -157,15 +157,15 @@ export function FileUpload({ onDataLoaded }: FileUploadProps) {
           )}
         </div>
         
-        <h3 className="text-2xl font-extrabold text-gray-900 mb-3 tracking-tight">
+        <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-3 tracking-tight">
           {isLoading ? 'Analyzing Data...' : 'Drop your analysis file here'}
         </h3>
-        <p className="text-gray-500 max-w-xs mx-auto mb-10 text-sm leading-relaxed">
+        <p className="text-gray-500 dark:text-gray-400 max-w-xs mx-auto mb-10 text-sm leading-relaxed">
           Upload Quadient Inspire exports (.xlsx, .csv) to detect sensitive variables and assess risk.
         </p>
         
         <div className="flex flex-col items-center gap-8">
-          <div className="flex items-center gap-4 px-6 py-3 bg-white border border-gray-200 rounded-2xl shadow-sm group-hover:shadow-md transition-all">
+          <div className="flex items-center gap-4 px-6 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm group-hover:shadow-md transition-all">
             <div className="flex -space-x-2">
               <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center text-green-600 border border-green-100">
                 <FileSpreadsheet className="w-4 h-4" />
@@ -185,7 +185,7 @@ export function FileUpload({ onDataLoaded }: FileUploadProps) {
       </div>
 
       {error && (
-        <div className="mt-8 p-5 bg-red-50 border border-red-100 rounded-3xl flex items-start gap-4 text-red-700 shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
+        <div className="mt-8 p-5 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800/50 rounded-3xl flex items-start gap-4 text-red-700 dark:text-red-400 shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
           <AlertCircle className="w-6 h-6 mt-0.5 flex-shrink-0" />
           <div className="space-y-1">
             <p className="text-sm font-bold">Upload Error</p>
