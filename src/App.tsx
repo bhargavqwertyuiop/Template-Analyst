@@ -572,7 +572,7 @@ function AppContent() {
         <header className="bg-white/95 backdrop-blur-sm border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-2.5 flex flex-col sm:flex-row items-center justify-between sticky top-0 z-50 gap-3">
           <div className="flex items-center gap-3 self-start sm:self-center">
             <div className="h-12 sm:h-14 lg:h-16 overflow-hidden transition-transform duration-300 ease-out hover:scale-[1.02]">
-              <img src={logo} alt="Guardient logo" className="h-[175%] w-auto max-w-none object-cover object-left -mt-2 sm:-mt-3" />
+              <img src={logo} alt="Guardient logo" className="h-[330%] w-auto max-w-none object-cover object-left -mt-16 sm:-mt-17" />
             </div>
           </div>
           <div className="flex items-center gap-3 sm:gap-4">
