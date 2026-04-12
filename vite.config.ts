@@ -4,9 +4,10 @@ import path from 'path';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  base: '/Template-Analyst/',
-
   plugins: [react(), tailwindcss()],
+
+  // Base path for GitHub Pages deployment
+  base: '/Template-Analyst/',
 
   resolve: {
     alias: {
@@ -15,7 +16,6 @@ export default defineConfig({
   },
 
   server: {
-    // HMR disabled via env flag if needed
     hmr: process.env.DISABLE_HMR !== 'true',
   },
 });

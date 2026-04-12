@@ -1,0 +1,47 @@
+{
+  "entities": {
+    "AnalysisHistory": {
+      "title": "Analysis History",
+      "description": "Stores the history of template analysis runs for each user.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The unique ID of the user who performed the analysis."
+        },
+        "fileName": {
+          "type": "string",
+          "description": "The name of the uploaded file."
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The time when the analysis was performed."
+        },
+        "totalTemplates": {
+          "type": "integer",
+          "description": "Total number of templates analyzed."
+        },
+        "sensitiveCount": {
+          "type": "integer",
+          "description": "Total number of sensitive variables found."
+        },
+        "highRiskCount": {
+          "type": "integer",
+          "description": "Number of high-risk templates identified."
+        },
+        "data": {
+          "type": "string",
+          "description": "JSON stringified raw data for the analysis."
+        }
+      },
+      "required": ["userId", "fileName", "timestamp", "totalTemplates", "sensitiveCount", "highRiskCount", "data"]
+    }
+  },
+  "firestore": {
+    "/analysisHistory/{historyId}": {
+      "schema": "AnalysisHistory",
+      "description": "Collection of analysis history records."
+    }
+  }
+}

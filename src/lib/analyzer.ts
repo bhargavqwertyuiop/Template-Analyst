@@ -6,7 +6,7 @@
 export type Category = 'EMAIL' | 'PII' | 'FINANCIAL' | 'SECURITY' | 'CONTACT' | 'NONE';
 export type VariableType = 'System' | 'Global' | 'Sensitive' | 'Other';
 export type RiskLevel = 'HIGH' | 'MEDIUM' | 'LOW' | 'SAFE';
-export type TemplateType = 'BASE_TEMPLATE' | 'BLOCK' | 'SNIPPET' | 'TEMPLATE';
+export type TemplateType = 'BASE_TEMPLATE' | 'BLOCK' | 'SNIPPET' | 'TEMPLATE' | 'OTHER';
 
 export interface RawTemplateData {
   WfdName: string;
@@ -35,6 +35,7 @@ export interface TemplateSummary {
   totalCount: number;
   categories: Set<Category>;
   riskLevel: RiskLevel;
+  riskScore: number;
   typeDistribution: Record<VariableType, number>;
   templateType: TemplateType;
   templatePath: string;
@@ -51,7 +52,9 @@ export interface DashboardStats {
   templateTypeDistribution: Record<TemplateType, number>;
 }
 
-export const SENSITIVE_DICTIONARY: Record<Category, string[]> = {
+export type Dictionary = Record<Category, string[]>;
+
+export const DEFAULT_SENSITIVE_DICTIONARY: Dictionary = {
   EMAIL: ["email", "emailid", "email_to", "emailfrom", "emailsubject"],
   PII: ["name", "fullname", "surname", "dob", "ssn", "socialsecurity"],
   FINANCIAL: ["account", "iban", "swift", "card", "cvv", "ifsc", "neft", "routing"],
@@ -59,6 +62,25 @@ export const SENSITIVE_DICTIONARY: Record<Category, string[]> = {
   CONTACT: ["phone", "mobile", "address"],
   NONE: []
 };
+
+export function parseDictionaryCSV(csvData: any[]): Dictionary {
+  const dictionary: Dictionary = {
+    EMAIL: [], PII: [], FINANCIAL: [], SECURITY: [], CONTACT: [], NONE: []
+  };
+
+  csvData.forEach(row => {
+    const category = String(row.Category || row.category || '').toUpperCase() as Category;
+    const keyword = String(row.Keyword || row.keyword || '').toLowerCase().trim();
+
+    if (category && keyword && dictionary[category]) {
+      if (!dictionary[category].includes(keyword)) {
+        dictionary[category].push(keyword);
+      }
+    }
+  });
+
+  return dictionary;
+}
 
 export function extractVariableName(objectName: string | null | undefined): string {
   if (!objectName || typeof objectName !== 'string') {
@@ -70,7 +92,7 @@ export function extractVariableName(objectName: string | null | undefined): stri
 
 export function detectTemplateType(wfdName: string): TemplateType {
   const path = wfdName.toLowerCase();
-  
+
   if (path.includes('/base') || path.includes('/master') || path.includes('/basetemplate')) {
     return 'BASE_TEMPLATE';
   }
@@ -80,20 +102,23 @@ export function detectTemplateType(wfdName: string): TemplateType {
   if (path.includes('/snippet') || path.includes('/snippets')) {
     return 'SNIPPET';
   }
-  return 'TEMPLATE';
+  if (path.includes('/template') || path.includes('/templates')) {
+    return 'TEMPLATE';
+  }
+  return 'OTHER';
 }
 
-export function detectCategories(variableName: string): Category[] {
+export function detectCategories(variableName: string, dictionary: Dictionary = DEFAULT_SENSITIVE_DICTIONARY): Category[] {
   const normalized = variableName.toLowerCase().trim();
   const matches: Category[] = [];
-  
-  for (const [category, keywords] of Object.entries(SENSITIVE_DICTIONARY)) {
+
+  for (const [category, keywords] of Object.entries(dictionary)) {
     if (category === 'NONE') continue;
     if (keywords.some(keyword => normalized.includes(keyword))) {
       matches.push(category as Category);
     }
   }
-  
+
   return matches;
 }
 
@@ -109,19 +134,31 @@ export function classifyVariableType(objectPath: string, categories: Category[])
   return 'Other';
 }
 
-export function calculateRiskLevel(categories: Set<Category>): RiskLevel {
-  // HIGH -> contains SECURITY + FINANCIAL
-  if (categories.has('SECURITY') || categories.has('FINANCIAL')) return 'HIGH';
-  // MEDIUM -> contains PII
-  if (categories.has('PII')) return 'MEDIUM';
-  // LOW -> only EMAIL / CONTACT
-  if (categories.has('EMAIL') || categories.has('CONTACT')) return 'LOW';
-  return 'SAFE';
+export function calculateRiskLevel(categories: Set<Category>, sensitiveCount: number, totalCount: number): { level: RiskLevel; score: number } {
+  let score = 0;
+
+  // Weights for different categories
+  if (categories.has('SECURITY')) score += 40;
+  if (categories.has('FINANCIAL')) score += 30;
+  if (categories.has('PII')) score += 20;
+  if (categories.has('EMAIL')) score += 5;
+  if (categories.has('CONTACT')) score += 5;
+
+  // Density factor
+  const density = totalCount > 0 ? (sensitiveCount / totalCount) : 0;
+  score = Math.min(100, score + (density * 20));
+
+  let level: RiskLevel = 'SAFE';
+  if (score >= 70) level = 'HIGH';
+  else if (score >= 40) level = 'MEDIUM';
+  else if (score > 0) level = 'LOW';
+
+  return { level, score: Math.round(score) };
 }
 
 export function calculateStats(templateSummaries: TemplateSummary[]): DashboardStats {
   const allVariables = templateSummaries.flatMap(s => s.variables);
-  
+
   return {
     totalTemplates: templateSummaries.length,
     totalVariables: allVariables.length,
@@ -144,11 +181,11 @@ export function calculateStats(templateSummaries: TemplateSummary[]): DashboardS
     templateTypeDistribution: templateSummaries.reduce((acc, summary) => {
       acc[summary.templateType] = (acc[summary.templateType] || 0) + 1;
       return acc;
-    }, { BASE_TEMPLATE: 0, BLOCK: 0, SNIPPET: 0, TEMPLATE: 0 } as Record<TemplateType, number>)
+    }, { BASE_TEMPLATE: 0, BLOCK: 0, SNIPPET: 0, TEMPLATE: 0, OTHER: 0 } as Record<TemplateType, number>)
   };
 }
 
-export function processRawData(data: RawTemplateData[]): {
+export function processRawData(data: RawTemplateData[], dictionary: Dictionary = DEFAULT_SENSITIVE_DICTIONARY): {
   allVariables: TemplateVariable[];
   templateSummaries: TemplateSummary[];
   stats: DashboardStats;
@@ -167,7 +204,7 @@ export function processRawData(data: RawTemplateData[]): {
         categoryDistribution: { EMAIL: 0, PII: 0, FINANCIAL: 0, SECURITY: 0, CONTACT: 0, NONE: 0 },
         typeDistribution: { System: 0, Global: 0, Sensitive: 0, Other: 0 },
         riskDistribution: { HIGH: 0, MEDIUM: 0, LOW: 0, SAFE: 0 },
-        templateTypeDistribution: { BASE_TEMPLATE: 0, BLOCK: 0, SNIPPET: 0, TEMPLATE: 0 }
+        templateTypeDistribution: { BASE_TEMPLATE: 0, BLOCK: 0, SNIPPET: 0, TEMPLATE: 0, OTHER: 0 }
       }
     };
   }
@@ -184,7 +221,7 @@ export function processRawData(data: RawTemplateData[]): {
     }
     const objectPath = row['Object Name'] || '';
     const varName = extractVariableName(objectPath);
-    const categories = detectCategories(varName);
+    const categories = detectCategories(varName, dictionary);
     const type = classifyVariableType(objectPath, categories);
     const templateName = row.WfdName.split('/').pop() || row.WfdName;
 
@@ -211,11 +248,13 @@ export function processRawData(data: RawTemplateData[]): {
   const templateSummaries: TemplateSummary[] = Object.entries(templateMap).map(([name, vars]) => {
     const sensitiveVars = vars.filter(v => v.categories.length > 0);
     const categories = new Set(sensitiveVars.flatMap(v => v.categories));
-    
+
     const typeDistribution = vars.reduce((acc, v) => {
       acc[v.type] = (acc[v.type] || 0) + 1;
       return acc;
     }, { System: 0, Global: 0, Sensitive: 0, Other: 0 } as Record<VariableType, number>);
+
+    const { level, score } = calculateRiskLevel(categories, sensitiveVars.length, vars.length);
 
     return {
       templateName: name,
@@ -223,7 +262,8 @@ export function processRawData(data: RawTemplateData[]): {
       sensitiveCount: sensitiveVars.length,
       totalCount: vars.length,
       categories,
-      riskLevel: calculateRiskLevel(categories),
+      riskLevel: level,
+      riskScore: score,
       typeDistribution,
       templateType: detectTemplateType(templatePathMap[name]),
       templatePath: templatePathMap[name]

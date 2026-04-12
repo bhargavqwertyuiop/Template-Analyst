@@ -1,0 +1,9 @@
+{
+  "apiKey": "VITE_FIREBASE_API_KEY",
+  "authDomain": "VITE_FIREBASE_AUTH",
+  "projectId": "VITE_FIREBASE_PROJECT_ID",
+  "storageBucket": "VITE_FIREBASE_STORAGE_ID",
+  "messagingSenderId": "VITE_FIREBASE_MSG_ID",
+  "appId": "VITE_FIREBASE_APP_ID",
+  "measurementId": "VITE_FIREBASE_MEASUREMENT_ID"
+}
