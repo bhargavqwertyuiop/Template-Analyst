@@ -865,6 +865,7 @@ function AppContent() {
               <option value="BLOCK">Block</option>
               <option value="SNIPPET">Snippet</option>
               <option value="TEMPLATE">Template</option>
+              <option value="OTHER">Others</option>
             </select>
           </div>
         </div>
