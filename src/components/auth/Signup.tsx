@@ -8,6 +8,7 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../firebase';
 import { ShieldCheck, Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
+import logo from '../../assets/logo.jpg';
 
 interface SignupProps {
   onSwitchToLogin: () => void;
@@ -48,15 +49,20 @@ export function Signup({ onSwitchToLogin }: SignupProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Blurred background elements */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-400/30 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-400/30 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-emerald-400/20 rounded-full blur-[100px] pointer-events-none" />
+
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md bg-white rounded-3xl shadow-2xl shadow-gray-100/50 border border-gray-100 overflow-hidden"
+        className="w-full max-w-md bg-white rounded-3xl shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden relative z-10"
       >
         <div className="p-8 bg-gray-800 flex flex-col items-center text-white">
-          <div className="bg-white/20 p-3 rounded-2xl mb-4 backdrop-blur-sm">
-            <ShieldCheck className="w-8 h-8 text-white" />
+          <div className="mb-6 h-12 sm:h-14 flex justify-center overflow-hidden">
+            <img src={logo} alt="Logo" className="h-[250%] w-auto max-w-none object-cover object-left -mt-8 invert hue-rotate-180 mix-blend-screen" />
           </div>
           <h2 className="text-2xl font-bold tracking-tight">Create Account</h2>
           <p className="text-gray-300 text-sm mt-1">Start securing your templates today</p>

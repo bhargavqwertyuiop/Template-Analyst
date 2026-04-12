@@ -1,0 +1,15 @@
+Category,Keyword
+EMAIL,email
+EMAIL,email address
+EMAIL,e-mail
+PII,fullname
+PII,first name
+PII,last name
+PII,dob
+PII,date of birth
+PII,ssn
+PII,social security
+FINANCIAL,account
+FINANCIAL,credit card
+FINANCIAL,bank
+FINANCIAL,routing number
