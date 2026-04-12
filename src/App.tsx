@@ -551,22 +551,22 @@ function AppContent() {
   if (!processedData) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
-        <header className="bg-white border-b border-gray-100 px-4 sm:px-8 py-4 flex flex-col sm:flex-row items-center justify-between sticky top-0 z-50 gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-24 h-16 rounded-2xl overflow-hidden bg-white shadow-gray-200 shadow-lg transition-transform duration-300 ease-out hover:scale-110">
-              <img src={logo} alt="Guardient logo" className="w-full h-full object-cover" />
+        <header className="bg-white/95 backdrop-blur-sm border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-2.5 flex flex-col sm:flex-row items-center justify-between sticky top-0 z-50 gap-3">
+          <div className="flex items-center gap-3 self-start sm:self-center">
+            <div className="h-12 sm:h-14 lg:h-16 transition-transform duration-300 ease-out hover:scale-[1.02]">
+              <img src={logo} alt="Guardient logo" className="h-full w-auto object-contain" />
             </div>
           </div>
-          <div className="flex items-center gap-4 sm:gap-6">
-            <div className="flex items-center gap-3 px-4 py-2 bg-gray-50 rounded-xl border border-gray-100">
-              <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-gray-600 border border-gray-200">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="flex items-center gap-3 px-3 py-1.5 bg-gray-50 rounded-full border border-gray-200">
+              <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center text-gray-600 border border-gray-200">
                 <UserIcon className="w-4 h-4" />
               </div>
-              <div className="flex items-center gap-4">
-                <p className="text-xs font-bold text-gray-900">{user.email}</p>
+              <div className="flex items-center gap-3">
+                <p className="text-[11px] font-semibold text-gray-900">{user.email}</p>
                 <button
                   onClick={handleLogout}
-                  className="px-3 py-1 text-[10px] font-bold text-white bg-red-500 hover:bg-red-600 rounded-lg uppercase tracking-wider transition-colors"
+                  className="px-2.5 py-1 text-[10px] font-semibold text-white bg-red-500 hover:bg-red-600 rounded-full uppercase tracking-wide transition-colors"
                 >
                   Sign Out
                 </button>
@@ -705,14 +705,14 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <header className="bg-white border-b border-gray-100 px-4 sm:px-8 py-4 flex flex-col lg:flex-row items-center justify-between sticky top-0 z-50 gap-4">
+      <header className="bg-white/95 backdrop-blur-sm border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-2.5 flex flex-col lg:flex-row items-center justify-between sticky top-0 z-50 gap-3">
         <div className="flex items-center gap-3 w-full lg:w-auto">
-          <div className="w-24 h-16 rounded-2xl overflow-hidden bg-white shadow-gray-200 shadow-lg">
-            <img src={logo} alt="Guardient logo" className="w-full h-full object-cover" />
+          <div className="h-12 sm:h-14 lg:h-16 shrink-0">
+            <img src={logo} alt="Guardient logo" className="h-full w-auto object-contain" />
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
           <div className="relative group w-full sm:w-64 lg:w-96">
             <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 group-focus-within:text-gray-600 transition-colors" />
             <input
@@ -720,20 +720,20 @@ function AppContent() {
               placeholder="Search templates or variables..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-500/20 focus:border-gray-500 transition-all w-full"
+              className="pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-gray-500/20 focus:border-gray-500 transition-all w-full"
             />
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <div className="flex items-center gap-2">
-              <label className="flex items-center gap-2 px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-gray-50 transition-colors bg-white rounded-xl cursor-pointer border border-gray-200 hover:border-gray-300 h-10" title="Upload CSV with columns: Category (EMAIL/PII/FINANCIAL/SECURITY/CONTACT/NONE) and Keyword">
+              <label className="flex items-center gap-2 px-3 py-2 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors bg-white rounded-full cursor-pointer border border-gray-200 hover:border-gray-300 h-9" title="Upload CSV with columns: Category (EMAIL/PII/FINANCIAL/SECURITY/CONTACT/NONE) and Keyword">
                 <Upload className="w-3 h-3" />
                 Upload CSV Dictionary
                 <input type="file" accept=".csv" className="hidden" onChange={handleDictionaryUpload} />
               </label>
               <button
                 onClick={() => setIsDictionaryManagerOpen(true)}
-                className="flex items-center gap-2 px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-gray-50 transition-colors bg-white rounded-xl border border-gray-200 hover:border-gray-300 h-10"
+                className="flex items-center gap-2 px-3 py-2 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors bg-white rounded-full border border-gray-200 hover:border-gray-300 h-9"
               >
                 <Settings className="w-3 h-3" />
                 Keywords
@@ -742,7 +742,7 @@ function AppContent() {
             <div className="text-[9px] text-gray-400 max-w-[120px] leading-tight">
               CSV format: Category + Keyword columns
             </div>
-            <div className="flex items-center gap-2 px-3 py-1 bg-gray-50 rounded-xl border border-gray-100 h-10">
+            <div className="flex items-center gap-2 px-3 py-1 bg-gray-50 rounded-full border border-gray-200 h-9">
               <span className="px-2 py-0.5 bg-gray-800 text-white text-[10px] font-bold rounded-md uppercase tracking-wider">
                 {Object.values(sensitiveDictionary).flat().length} Active Variables
               </span>
@@ -757,17 +757,17 @@ function AppContent() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => { resetData(); setSelectedTemplate(null); }}
-              className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+              className="p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-full hover:bg-gray-50"
               title="Reset View"
             >
               <RefreshCcw className="w-4 h-4" />
             </button>
             <button
               onClick={exportToCSV}
-              className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+              className="p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-full hover:bg-gray-50"
               title="Export CSV"
             >
               <Download className="w-4 h-4" />
@@ -775,7 +775,7 @@ function AppContent() {
             <button
               onClick={exportToPDF}
               disabled={isExportingPDF}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-gray-800 hover:bg-gray-900 transition-all rounded-xl shadow-lg shadow-gray-200 disabled:opacity-50 disabled:cursor-not-allowed h-10"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-gray-800 hover:bg-gray-900 transition-all rounded-full shadow-sm disabled:opacity-50 disabled:cursor-not-allowed h-9"
             >
               {isExportingPDF ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -786,15 +786,15 @@ function AppContent() {
             </button>
           </div>
 
-          <div className="flex items-center gap-3 px-4 py-2 bg-gray-50 rounded-xl border border-gray-100 h-10">
+          <div className="flex items-center gap-3 px-3 py-1.5 bg-gray-50 rounded-full border border-gray-200 h-9">
             <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-gray-600 border border-gray-200">
               <UserIcon className="w-3 h-3" />
             </div>
             <div className="flex items-center gap-3">
-              <p className="text-[10px] font-bold text-gray-900 truncate max-w-[80px]">{user.email}</p>
+              <p className="text-[10px] font-semibold text-gray-900 truncate max-w-[96px]">{user.email}</p>
               <button
                 onClick={handleLogout}
-                className="px-2 py-0.5 text-[9px] font-bold text-white bg-red-500 hover:bg-red-600 rounded-md uppercase tracking-wider transition-colors"
+                className="px-2.5 py-1 text-[9px] font-semibold text-white bg-red-500 hover:bg-red-600 rounded-full uppercase tracking-wide transition-colors"
               >
                 Sign Out
               </button>
