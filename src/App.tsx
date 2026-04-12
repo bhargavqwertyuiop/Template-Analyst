@@ -14,6 +14,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import jsPDF from 'jspdf';
 import Papa from 'papaparse';
+import logo from './assets/logo.jpg';
 import {
   collection, query, where, orderBy, limit,
   getDocs, addDoc, deleteDoc, doc, writeBatch,
@@ -442,7 +443,7 @@ function AppContent() {
 
       addSectionTitle('Template Variable Analysis Report');
       addLine(`Generated: ${new Date().toLocaleDateString()}`);
-      addLine('Prepared by Template Analyst');
+      addLine('Prepared by Guardient');
       if (searchQuery) addLine(`Search Filter: "${searchQuery}"`);
       cursorY += 2;
       addKeyValue('Total Templates', filteredStats.totalTemplates);
@@ -552,12 +553,8 @@ function AppContent() {
       <div className="min-h-screen bg-gray-50 flex flex-col">
         <header className="bg-white border-b border-gray-100 px-4 sm:px-8 py-4 flex flex-col sm:flex-row items-center justify-between sticky top-0 z-50 gap-4">
           <div className="flex items-center gap-3">
-            <div className="bg-gray-800 p-2 rounded-xl shadow-gray-200 shadow-lg">
-              <ShieldCheck className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900 tracking-tight">Template Analyst</h1>
-              <p className="text-xs text-gray-400 font-medium uppercase tracking-widest">Security Dashboard</p>
+            <div className="w-24 h-16 rounded-2xl overflow-hidden bg-white shadow-gray-200 shadow-lg transition-transform duration-300 ease-out hover:scale-110">
+              <img src={logo} alt="Guardient logo" className="w-full h-full object-cover" />
             </div>
           </div>
           <div className="flex items-center gap-4 sm:gap-6">
@@ -710,12 +707,8 @@ function AppContent() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <header className="bg-white border-b border-gray-100 px-4 sm:px-8 py-4 flex flex-col lg:flex-row items-center justify-between sticky top-0 z-50 gap-4">
         <div className="flex items-center gap-3 w-full lg:w-auto">
-          <div className="bg-gray-800 p-2 rounded-xl shadow-gray-200 shadow-lg">
-            <ShieldCheck className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900 tracking-tight">Template Analyst</h1>
-            <p className="text-xs text-gray-400 font-medium uppercase tracking-widest">Security Dashboard</p>
+          <div className="w-24 h-16 rounded-2xl overflow-hidden bg-white shadow-gray-200 shadow-lg">
+            <img src={logo} alt="Guardient logo" className="w-full h-full object-cover" />
           </div>
         </div>
 
@@ -1001,7 +994,7 @@ function AppContent() {
         <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
             <ShieldCheck className="w-5 h-5 text-gray-600" />
-            <span className="text-sm font-semibold text-gray-900">CCM Template Analyst v1.0</span>
+            <span className="text-sm font-semibold text-gray-900">Guardient v1.0</span>
           </div>
           <div className="flex items-center gap-8 text-sm text-gray-500">
             <a href="https://github.com/bhargavqwertyuiop/Template-Analyst" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 transition-colors">Documentation</a>
@@ -1025,7 +1018,7 @@ function AppContent() {
           <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden">
             <div className="p-6 border-b border-gray-100">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">About Template Analyst</h2>
+                <h2 className="text-xl font-bold text-gray-900">About Guardient</h2>
                 <button onClick={() => setIsAboutOpen(false)} className="p-2 hover:bg-gray-50 rounded-xl transition-colors">
                   <X className="w-5 h-5 text-gray-400" />
                 </button>
@@ -1035,7 +1028,7 @@ function AppContent() {
             <div className="p-6">
               <div className="text-center mb-6">
                 <ShieldCheck className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">CCM Template Analyst v1.0</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Guardient v1.0</h3>
                 <p className="text-sm text-gray-600">Secure your Quadient Inspire templates with intelligent risk detection</p>
               </div>
 
