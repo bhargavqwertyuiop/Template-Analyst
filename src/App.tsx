@@ -25,7 +25,7 @@ import { signOut } from 'firebase/auth';
 import {
   processRawData, RawTemplateData, TemplateVariable,
   TemplateSummary, DashboardStats, Category, RiskLevel, TemplateType,
-  calculateStats, DEFAULT_SENSITIVE_DICTIONARY, Dictionary, parseDictionaryCSV
+  calculateStats, countDictionaryKeywords, DEFAULT_SENSITIVE_DICTIONARY, Dictionary, DictionaryCsvRow, parseDictionaryCSV, validateDictionaryCSV
 } from './lib/analyzer';
 import { FileUpload } from './components/FileUpload';
 import { InstructionVideo } from './components/InstructionVideo';
@@ -110,6 +110,7 @@ function AppContent() {
   const [showSensitiveOnly, setShowSensitiveOnly] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [isDictionaryManagerOpen, setIsDictionaryManagerOpen] = useState(false);
+  const [keywordsUploadWarning, setKeywordsUploadWarning] = useState<string | null>(null);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [history, setHistory] = useState<Array<{
     id: string;
@@ -277,17 +278,33 @@ function AppContent() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    Papa.parse(file, {
+    Papa.parse<DictionaryCsvRow>(file, {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
+        const validationError = validateDictionaryCSV(results.data, results.meta.fields);
+        if (validationError) {
+          setKeywordsUploadWarning(validationError);
+          e.target.value = '';
+          return;
+        }
+
         const newDictionary = parseDictionaryCSV(results.data);
+        if (countDictionaryKeywords(newDictionary) === 0) {
+          setKeywordsUploadWarning('The keywords CSV did not contain any usable keywords.');
+          e.target.value = '';
+          return;
+        }
+
         saveDictionary(newDictionary);
-        alert('Sensitive dictionary updated successfully!');
+        setKeywordsUploadWarning(null);
+        alert('Keywords updated successfully!');
+        e.target.value = '';
       },
       error: (error) => {
         console.error('CSV Parsing Error:', error);
-        alert('Failed to parse dictionary CSV.');
+        setKeywordsUploadWarning('Failed to parse keywords CSV.');
+        e.target.value = '';
       }
     });
   };
@@ -741,7 +758,7 @@ function AppContent() {
               </button>
             </div>
             <a
-              href="/dictionary-template.csv"
+              href="/keyword-template.csv"
               download
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-full transition-colors"
               title="Download the keywords CSV template"
@@ -754,7 +771,7 @@ function AppContent() {
                 Variables
               </span>
               <span className="inline-flex items-center rounded-full bg-white border border-gray-200 px-2.5 py-1 text-[11px] font-semibold text-gray-800 leading-none">
-                {Object.values(sensitiveDictionary).flat().length}
+                {countDictionaryKeywords(sensitiveDictionary)}
               </span>
               {localStorage.getItem('sensitive_dictionary') && (
                 <button
@@ -1069,6 +1086,44 @@ function AppContent() {
                   © 2026 Quadient Inspire CCM Security. All rights reserved.
                 </p>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {keywordsUploadWarning && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl bg-white shadow-2xl border border-amber-100 overflow-hidden">
+            <div className="flex items-center justify-between border-b border-amber-100 bg-amber-50 px-6 py-4">
+              <div className="flex items-center gap-3 text-amber-800">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white border border-amber-100">
+                  <AlertCircle className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold">Keywords CSV warning</h3>
+                  <p className="text-xs font-medium text-amber-700">The uploaded file was not applied.</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setKeywordsUploadWarning(null)}
+                className="rounded-full p-2 text-amber-600 hover:bg-amber-100 transition-colors"
+                aria-label="Close warning"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="px-6 py-5">
+              <p className="text-sm leading-relaxed text-gray-700">{keywordsUploadWarning}</p>
+            </div>
+
+            <div className="flex justify-end gap-3 border-t border-gray-100 px-6 py-4 bg-gray-50">
+              <button
+                onClick={() => setKeywordsUploadWarning(null)}
+                className="rounded-full bg-gray-800 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-900 transition-colors"
+              >
+                OK
+              </button>
             </div>
           </div>
         </div>
