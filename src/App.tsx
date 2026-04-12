@@ -778,7 +778,7 @@ function AppContent() {
               </button>
             </div>
             <a
-              href="/keyword-template.csv"
+              href={`${import.meta.env.BASE_URL}keyword-template.csv`}
               download
             className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-full transition-colors"
               title="Download the keywords CSV template"
