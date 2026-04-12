@@ -59,7 +59,7 @@ export function DictionaryManager({ dictionary, onSave, onClose, onReset }: Dict
       <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col">
         <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Manage Sensitive Dictionary</h2>
+            <h2 className="text-xl font-bold text-gray-900">Manage Keywords</h2>
             <p className="text-xs text-gray-500 mt-1 uppercase tracking-wider font-semibold">Customize keywords for risk detection</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white rounded-xl transition-colors">
