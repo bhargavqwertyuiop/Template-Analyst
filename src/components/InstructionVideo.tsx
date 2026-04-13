@@ -7,7 +7,7 @@ interface InstructionVideoProps {
 }
 
 export function InstructionVideo({
-  videoId = "1_xp5fRwk5DVU__iVj4q3rWAQgs8CTarj",
+  videoId = "1G3QXgIT64H-tOZB2sNlqqm9oFcr3HgBm",
   title = "How to Use This Application",
   description = "Watch this quick tutorial to learn how to prepare your CSV input files and get the most out of the Template Analyst application."
 }: InstructionVideoProps) {
