@@ -2,6 +2,46 @@
 
 A comprehensive security analysis tool for CCM (Customer Communications Management) templates. This application helps organizations identify and mitigate security risks in their document templates by analyzing variable data for sensitive information exposure.
 
+**Access the Application at https://bhargavqwertyuiop.github.io/Template-Analyst/** 
+## Getting Started
+
+### Prerequisites
+- Node.js (v18 or higher)
+- npm or yarn
+- Firebase project with Authentication and Firestore enabled
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/bhargavqwertyuiop/Template-Analyst.git
+   cd Template-Analyst
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Environment Setup**
+   ```bash
+   cp .env.example .env
+   ```
+   Fill in your Firebase configuration values in the `.env` file.
+
+4. **Start Development Server**
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+### Firebase Configuration
+
+1. Create a Firebase project at [Firebase Console](https://console.firebase.google.com/)
+2. Enable Authentication and Firestore Database
+3. Add a web app to get your configuration
+4. Copy the config values to your `.env` file
+
 ## What It Does
 
 Guardient is designed to help security teams and developers:
@@ -47,45 +87,6 @@ Guardient is designed to help security teams and developers:
 - **Charts**: Recharts
 - **PDF Export**: jsPDF
 - **Data Processing**: PapaParse for CSV handling
-
-## Getting Started
-
-### Prerequisites
-- Node.js (v18 or higher)
-- npm or yarn
-- Firebase project with Authentication and Firestore enabled
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd Template-Analyst
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Environment Setup**
-   ```bash
-   cp .env.example .env
-   ```
-   Fill in your Firebase configuration values in the `.env` file.
-
-4. **Start Development Server**
-   ```bash
-   npm run dev
-   ```
-   Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-### Firebase Configuration
-
-1. Create a Firebase project at [Firebase Console](https://console.firebase.google.com/)
-2. Enable Authentication and Firestore Database
-3. Add a web app to get your configuration
-4. Copy the config values to your `.env` file
 
 ## Usage
 
