@@ -132,7 +132,7 @@ src/
 The application is configured for automatic deployment to GitHub Pages:
 
 1. Set up GitHub repository secrets with Firebase configuration
-2. Push to the `developer` or `developer2` branch
+2. Push to the `main` branch
 3. GitHub Actions will build and deploy automatically
 
 ### Environment Variables for Production
