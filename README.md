@@ -1,10 +1,10 @@
-# Template Analyst
+# Guardient
 
 A comprehensive security analysis tool for CCM (Customer Communications Management) templates. This application helps organizations identify and mitigate security risks in their document templates by analyzing variable data for sensitive information exposure.
 
 ## What It Does
 
-Template Analyst is designed to help security teams and developers:
+Guardient is designed to help security teams and developers:
 
 - **Analyze Template Variables**: Automatically extract and analyze variables from complex template structures
 - **Detect Sensitive Data**: Identify PII (Personally Identifiable Information), financial data, security credentials, and other sensitive information
