@@ -63,30 +63,30 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
     {
       label: 'Total Templates',
       value: stats.totalTemplates,
-      icon: <Layout className="w-6 h-6 text-gray-600" />,
-      bg: 'bg-gray-50',
-      border: 'border-gray-100'
+      icon: <Layout className="w-6 h-6 text-gray-600 dark:text-gray-300" />,
+      bg: 'bg-gray-50 dark:bg-gray-800/50',
+      border: 'border-gray-100 dark:border-gray-700'
     },
     {
       label: 'Total Variables',
       value: stats.totalVariables,
-      icon: <Database className="w-6 h-6 text-slate-600" />,
-      bg: 'bg-slate-50',
-      border: 'border-slate-100'
+      icon: <Database className="w-6 h-6 text-slate-600 dark:text-slate-300" />,
+      bg: 'bg-slate-50 dark:bg-slate-800/50',
+      border: 'border-slate-100 dark:border-slate-700'
     },
     {
       label: 'Sensitive Variables Count',
       value: stats.sensitiveVariablesCount,
-      icon: <ShieldAlert className="w-6 h-6 text-amber-600" />,
-      bg: 'bg-amber-50',
-      border: 'border-amber-100'
+      icon: <ShieldAlert className="w-6 h-6 text-amber-600 dark:text-amber-500" />,
+      bg: 'bg-amber-50 dark:bg-amber-900/20',
+      border: 'border-amber-100 dark:border-amber-800/50'
     },
     {
       label: 'High Risk Templates',
       value: stats.highRiskCount,
-      icon: <AlertTriangle className="w-6 h-6 text-red-600" />,
-      bg: 'bg-red-50',
-      border: 'border-red-100'
+      icon: <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-500" />,
+      bg: 'bg-red-50 dark:bg-red-900/20',
+      border: 'border-red-100 dark:border-red-800/50'
     }
   ];
 
@@ -98,12 +98,12 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
           className={`p-6 rounded-2xl border ${card.bg} ${card.border} shadow-sm transition-all duration-200`}
         >
           <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-white rounded-lg shadow-sm">
+            <div className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
               {card.icon}
             </div>
           </div>
-          <p className="text-sm font-medium text-gray-500 mb-1">{card.label}</p>
-          <p className="text-3xl font-bold text-gray-900">{card.value}</p>
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{card.label}</p>
+          <p className="text-3xl font-bold text-gray-900 dark:text-white">{card.value}</p>
         </div>
       ))}
     </div>
@@ -113,11 +113,13 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
 interface ChartsProps {
   stats: DashboardStats;
   templateSummaries: TemplateSummary[];
+  isDarkMode?: boolean;
 }
 
 export function Charts({
   stats,
-  templateSummaries
+  templateSummaries,
+  isDarkMode = false
 }: ChartsProps) {
   const pieData = Object.entries(stats.categoryDistribution)
     .filter(([name, value]) => name !== 'NONE' && value > 0)
@@ -154,8 +156,8 @@ export function Charts({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-8 mb-8">
-      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Category Distribution</h3>
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Category Distribution</h3>
         <div className="h-[250px]">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -177,7 +179,12 @@ export function Charts({
                 ))}
               </Pie>
               <Tooltip
-                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                contentStyle={{ 
+                  borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                  backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                  color: isDarkMode ? '#f3f4f6' : '#111827'
+                }}
+                itemStyle={{ color: isDarkMode ? '#e5e7eb' : '#374151' }}
               />
               <Legend verticalAlign="bottom" height={36} />
             </PieChart>
@@ -185,8 +192,8 @@ export function Charts({
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Risk Level Distribution</h3>
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Risk Level Distribution</h3>
         <div className="h-[250px]">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -208,7 +215,12 @@ export function Charts({
                 ))}
               </Pie>
               <Tooltip
-                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                contentStyle={{ 
+                  borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                  backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                  color: isDarkMode ? '#f3f4f6' : '#111827'
+                }}
+                itemStyle={{ color: isDarkMode ? '#e5e7eb' : '#374151' }}
               />
               <Legend verticalAlign="bottom" height={36} />
             </PieChart>
@@ -216,8 +228,8 @@ export function Charts({
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Template Type Distribution</h3>
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Template Type Distribution</h3>
         <div className="h-[250px]">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -239,7 +251,12 @@ export function Charts({
                 ))}
               </Pie>
               <Tooltip
-                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                contentStyle={{ 
+                  borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                  backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                  color: isDarkMode ? '#f3f4f6' : '#111827'
+                }}
+                itemStyle={{ color: isDarkMode ? '#e5e7eb' : '#374151' }}
               />
               <Legend verticalAlign="bottom" height={36} />
             </PieChart>
@@ -247,8 +264,8 @@ export function Charts({
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Risky Templates</h3>
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Top Risky Templates</h3>
         <div className="h-[250px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={barData} layout="vertical" margin={{ left: 20, right: 20 }}>
@@ -259,12 +276,17 @@ export function Charts({
                 type="category"
                 axisLine={false}
                 tickLine={false}
-                tick={{ fontSize: 11, fill: '#64748b' }}
+                tick={{ fontSize: 11, fill: isDarkMode ? '#94a3b8' : '#64748b' }}
                 width={100}
               />
               <Tooltip
                 cursor={{ fill: '#f8fafc' }}
-                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                contentStyle={{ 
+                  borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                  backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                  color: isDarkMode ? '#f3f4f6' : '#111827'
+                }}
+                itemStyle={{ color: isDarkMode ? '#e5e7eb' : '#374151' }}
                 formatter={(value) => [value, 'Sensitive Variables']}
                 labelFormatter={(label) => (Array.isArray(label) ? label[0] : label)}
               />

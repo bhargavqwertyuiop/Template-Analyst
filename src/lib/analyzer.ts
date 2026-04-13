@@ -53,6 +53,12 @@ export interface DashboardStats {
 }
 
 export type Dictionary = Record<Category, string[]>;
+export interface DictionaryCsvRow {
+  Category?: string;
+  category?: string;
+  Keyword?: string;
+  keyword?: string;
+}
 
 export const DEFAULT_SENSITIVE_DICTIONARY: Dictionary = {
   EMAIL: ["email", "emailid", "email_to", "emailfrom", "emailsubject"],
@@ -63,7 +69,9 @@ export const DEFAULT_SENSITIVE_DICTIONARY: Dictionary = {
   NONE: []
 };
 
-export function parseDictionaryCSV(csvData: any[]): Dictionary {
+const VALID_CATEGORIES: Category[] = ['EMAIL', 'PII', 'FINANCIAL', 'SECURITY', 'CONTACT', 'NONE'];
+
+export function parseDictionaryCSV(csvData: DictionaryCsvRow[]): Dictionary {
   const dictionary: Dictionary = {
     EMAIL: [], PII: [], FINANCIAL: [], SECURITY: [], CONTACT: [], NONE: []
   };
@@ -80,6 +88,42 @@ export function parseDictionaryCSV(csvData: any[]): Dictionary {
   });
 
   return dictionary;
+}
+
+export function countDictionaryKeywords(dictionary: Dictionary): number {
+  return Object.values(dictionary).reduce((total, keywords) => total + keywords.length, 0);
+}
+
+export function validateDictionaryCSV(rows: DictionaryCsvRow[], fields: string[] = []): string | null {
+  const normalizedFields = fields.map((field) => field.trim().toLowerCase());
+
+  if (!normalizedFields.includes('category') || !normalizedFields.includes('keyword')) {
+    return 'Invalid keywords CSV. Required columns: Category and Keyword.';
+  }
+
+  if (!rows.length) {
+    return 'The keywords CSV is empty.';
+  }
+
+  for (const [index, row] of rows.entries()) {
+    const categoryValue = String(row.Category || row.category || '').trim().toUpperCase();
+    const keywordValue = String(row.Keyword || row.keyword || '').trim();
+
+    if (!categoryValue || !keywordValue) {
+      return `Invalid keywords CSV row ${index + 2}. Every row must include both Category and Keyword.`;
+    }
+
+    if (!VALID_CATEGORIES.includes(categoryValue as Category)) {
+      return `Invalid category "${categoryValue}" in row ${index + 2}.`;
+    }
+  }
+
+  const parsedDictionary = parseDictionaryCSV(rows);
+  if (countDictionaryKeywords(parsedDictionary) === 0) {
+    return 'The keywords CSV did not contain any usable keywords.';
+  }
+
+  return null;
 }
 
 export function extractVariableName(objectName: string | null | undefined): string {
